@@ -16,5 +16,8 @@ Pod::Spec.new do |s|
   s.static_framework = true
 
   s.dependency 'ExpoModulesCore'
+  s.frameworks = 'CoreBluetooth'
   s.source_files = 'ios/**/*.{h,m,mm,swift,hpp,cpp}'
+  s.exclude_files = 'ios/Frameworks/**'
+  s.vendored_frameworks = 'ios/Frameworks/Bitboxnative.xcframework'
 end

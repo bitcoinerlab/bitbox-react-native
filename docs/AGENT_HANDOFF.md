@@ -9,32 +9,37 @@ structurally compatible.
 ## Current State
 
 - TypeScript wrapper API exists in `src/`.
-- Expo Modules API placeholders exist for iOS and Android.
+- Expo Modules API native modules exist for iOS and Android.
 - The native foundation targets React Native's New Architecture-compatible Expo
   Modules path rather than legacy `NativeModules`/bridge modules.
 - The native module is named `BitcoinerlabBitBox` on both platforms.
-- Every native method currently throws an explicit not-implemented error.
+- iOS BitBox Nova BLE has initial CoreBluetooth transport wiring for `connect`,
+  `disconnect`, `version`, and `rootFingerprint` through the Go protocol layer.
+- iOS BTC methods still throw explicit not-implemented errors until Swift
+  parameter serialization is wired into the Go wrapper.
+- Android native methods still throw explicit not-implemented errors.
 - Upstream BitBox API survey is documented in
   `docs/UPSTREAM_BITBOX_API_SURVEY.md`.
 - A tiny Go wrapper package exists under `native/go` and imports upstream
   `bitbox02-api-go`.
 - `native/go/build-gomobile.sh` builds gomobile artifacts into the ignored
   `native/go/build/` directory.
-- No generated gomobile iOS/Android artifacts exist yet.
+- A generated iOS gomobile xcframework is committed under
+  `ios/Frameworks/Bitboxnative.xcframework`.
 - Artifact strategy is to commit generated gomobile artifacts under platform
   package directories once they are useful, then ship them in npm releases.
 - Advanced users can rebuild those artifacts with `npm run native:go:build` and
   replace the committed copies for custom builds.
-- No native transport is wired into the Go wrapper yet.
-- `app.plugin.js` intentionally does not mutate Expo config yet because the
-  placeholder has no BLE, USB, or background-mode behavior.
+- The Go wrapper exposes a gomobile-friendly mobile transport interface.
+- `app.plugin.js` adds `NSBluetoothAlwaysUsageDescription` for iOS BLE. It does
+  not add iOS background modes or Android permissions yet.
 - Expo Modules autolinking is declared in `expo-module.config.json`.
 - Bare React Native apps are acceptable hosts if they install/configure Expo
   Modules native infrastructure. A separate plain React Native
   TurboModule/codegen implementation does not exist yet.
 - Calling `connectBitBox(...)` fails with a clear missing-native-module error if
-  the native module is not linked, or a clear not-implemented error if the
-  placeholder native module is linked.
+  the native module is not linked. On iOS, BLE is attempted for `auto`/`ble`; on
+  Android, the placeholder still throws not implemented.
 - `src/types.ts` intentionally owns the native BitBox client contract. Do not
   import types from `@bitcoinerlab/descriptors` just for convenience; that would
   couple this package to descriptors and recreate dependency issues.
@@ -77,9 +82,9 @@ minimal BitBox client interface:
 
 - `version(sessionId): Promise<string>`
 - `rootFingerprint(sessionId): Promise<string>`
-- `btcXpub(sessionId, apiNetwork, keypath, xpubType, display): Promise<string>`
+- `btcXpub(sessionId, apiNetwork, keypath, display): Promise<string>`
 - `btcAddress(sessionId, apiNetwork, keypath, scriptConfig, display): Promise<string>`
-- `btcRegisterScriptConfig(sessionId, apiNetwork, scriptConfig, keypathAccount, xpubType, name?): Promise<void>`
+- `btcRegisterScriptConfig(sessionId, apiNetwork, scriptConfig, keypathAccount, name?): Promise<void>`
 - `btcIsScriptConfigRegistered(sessionId, apiNetwork, scriptConfig, keypathAccount?): Promise<boolean>`
 - `btcSignPSBT(sessionId, apiNetwork, psbt, forceScriptConfig, formatUnit): Promise<string>`
 
@@ -105,7 +110,7 @@ import {
 
 const client = await connectBitBoxNovaBle();
 const manager = connectors.fromClient({
-  bitboxClient: client,
+  client,
   network,
   Output
 });
@@ -284,11 +289,11 @@ parsing in native code unless absolutely necessary.
 
 ## Immediate Next Steps
 
-1. Wire iOS BLE first for BitBox Nova and pass its read/write/close transport to
-   the Go wrapper.
-2. Choose exact committed artifact paths while wiring platform builds, likely
-   under `ios/` for xcframeworks and `android/` for AARs.
-3. Wire Android USB for classic BitBox02.
-4. Replace the no-op config plugin with real Expo config mutations when the
-   corresponding transport code needs permissions/resources.
-5. Validate with real hardware and descriptors' `connectors.fromClient(...)`.
+1. Validate iOS BitBox Nova BLE `connect`, `version`, and `rootFingerprint` on
+   physical hardware.
+2. Wire iOS Swift serialization for BTC xpub/address/register/signPSBT methods
+   into the existing Go wrapper.
+3. Add persisted Noise pairing config instead of the current in-memory Go config.
+4. Wire Android USB for classic BitBox02.
+5. Validate with descriptors' `connectors.fromClient(...)` once BTC methods are
+   wired.

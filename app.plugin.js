@@ -1,9 +1,9 @@
-// Expo Modules autolinking is declared in expo-module.config.json.
-//
-// This plugin intentionally makes no config mutations while the native module is
-// only a not-implemented skeleton. BLE permissions, USB filters, and background
-// modes should be added with the real transport implementations.
+const { withInfoPlist } = require('expo/config-plugins');
 
 module.exports = function withBitcoinerlabBitBoxReactNative(config) {
-  return config;
+  return withInfoPlist(config, config => {
+    config.modResults.NSBluetoothAlwaysUsageDescription ??=
+      'Connect to your BitBox Nova over Bluetooth.';
+    return config;
+  });
 };

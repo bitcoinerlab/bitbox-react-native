@@ -2,20 +2,6 @@ export type BitBoxApiNetwork = 'btc' | 'tbtc';
 
 export type BitBoxFormatUnit = 'default' | 'sat';
 
-export type BitBoxXPubType =
-  | 'tpub'
-  | 'xpub'
-  | 'ypub'
-  | 'zpub'
-  | 'vpub'
-  | 'upub'
-  | 'Vpub'
-  | 'Zpub'
-  | 'Upub'
-  | 'Ypub';
-
-export type BitBoxRegisterXPubType = 'autoElectrum' | 'autoXpubTpub';
-
 export type BitBoxKeypath = string | number[];
 
 export type BitBoxSimpleType = 'p2wpkhP2sh' | 'p2wpkh' | 'p2tr';
@@ -56,7 +42,6 @@ export type BitBoxClient = {
   btcXpub(
     apiNetwork: BitBoxApiNetwork,
     keypath: BitBoxKeypath,
-    xpubType: BitBoxXPubType,
     display: boolean
   ): Promise<string>;
   btcAddress(
@@ -69,7 +54,6 @@ export type BitBoxClient = {
     apiNetwork: BitBoxApiNetwork,
     scriptConfig: BitBoxScriptConfig,
     keypathAccount: BitBoxKeypath | undefined,
-    xpubType: BitBoxRegisterXPubType,
     name?: string
   ): Promise<void>;
   btcIsScriptConfigRegistered(
@@ -128,7 +112,6 @@ export type BitBoxNativeModule = {
     sessionId: string,
     apiNetwork: BitBoxApiNetwork,
     keypath: BitBoxKeypath,
-    xpubType: BitBoxXPubType,
     display: boolean
   ): Promise<string>;
   btcAddress(
@@ -143,7 +126,6 @@ export type BitBoxNativeModule = {
     apiNetwork: BitBoxApiNetwork,
     scriptConfig: BitBoxScriptConfig,
     keypathAccount: BitBoxKeypath | undefined,
-    xpubType: BitBoxRegisterXPubType,
     name?: string
   ): Promise<void>;
   btcIsScriptConfigRegistered(

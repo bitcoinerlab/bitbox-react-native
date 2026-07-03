@@ -1,0 +1,8 @@
+framework module "Bitboxnative" {
+	header "ref.h"
+    header "BitcoinerlabBitBoxBitboxnative.objc.h"
+    header "Universe.objc.h"
+    header "Bitboxnative.h"
+
+    export *
+}

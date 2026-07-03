@@ -2,22 +2,25 @@
 
 React Native native BitBox client provider for mobile Bitcoin apps.
 
-This package is a scaffold for mobile BitBox support. It exposes a small
-TypeScript API for a native BitBox client, but the native iOS/Android modules
-are not implemented yet.
+This package is an early mobile BitBox implementation. It exposes a small
+TypeScript API for a native BitBox client and has initial iOS BitBox Nova BLE
+transport wiring, but it is not production-ready yet.
 
 ## Status
 
 - JavaScript API: scaffolded.
 - Expo Modules / React Native New Architecture-compatible native package
   foundation: scaffolded.
-- iOS BitBox Nova BLE transport/protocol: not implemented.
+- iOS BitBox Nova BLE `connect`, `disconnect`, `version`, and
+  `rootFingerprint`: wired through CoreBluetooth, gomobile, and
+  `bitbox02-api-go`; still needs physical hardware validation.
+- iOS Bitcoin methods beyond `rootFingerprint`: not implemented in Swift yet.
 - Android BitBox02 USB transport/protocol: not implemented.
 - Android BitBox Nova BLE transport/protocol: not implemented.
 - Expo Go support: not possible, because custom native code is required.
 
-Do not use this package as proof that BitBox works in React Native today. It is
-the starting point for the native implementation.
+Do not treat this package as production-ready BitBox support until the native
+paths have been validated on real devices.
 
 ## Why This Package Exists
 
@@ -103,7 +106,7 @@ import { connectors } from '@bitcoinerlab/descriptors/bitbox';
 const client = await connectBitBoxNovaBle();
 
 const manager = connectors.fromClient({
-  bitboxClient: client,
+  client,
   network,
   Output
 });
@@ -118,13 +121,12 @@ try {
 
 ## Native Implementation
 
-This repository now includes Expo Modules API placeholders for iOS and Android.
-They are build-time wiring only and throw explicit "not implemented" errors for
-every method. The JavaScript resolver intentionally does not fall back to legacy
-`react-native` `NativeModules`. See `docs/AGENT_HANDOFF.md` before implementing
-native transport or protocol code. It includes the official BitBoxApp source
-pointers, BLE UUIDs, Android USB IDs, Expo config plugin requirements, and the
-recommended Go/gomobile boundary.
+This repository includes an Expo Modules API native module for iOS and Android.
+The iOS module has initial CoreBluetooth transport wiring for BitBox Nova and
+uses the vendored gomobile framework at `ios/Frameworks/Bitboxnative.xcframework`
+for the BitBox protocol. Android remains placeholder-only. The JavaScript
+resolver intentionally does not fall back to legacy `react-native`
+`NativeModules`.
 
 ## Development
 
@@ -139,12 +141,11 @@ the native Go wrapper or regenerating mobile bindings. They should not be needed
 by normal app developers installing a published package. Any installation method
 is fine as long as `go` and `gomobile` are available on `PATH`.
 
-For simplicity, generated gomobile artifacts will be committed and published in
-the npm package once they are useful. Normal app developers should get those
+For simplicity, generated gomobile artifacts are committed and published in the
+npm package once they are useful. Normal app developers should get those
 prebuilt artifacts from npm. Advanced users can rebuild them with
 `npm run native:go:build -- <target>` and replace the committed artifacts if
 they need a custom build.
 
-The real native transport/protocol implementation is intentionally absent for
-now. Until it exists, the API throws a clear error if the `BitcoinerlabBitBox`
-native module is missing or if the placeholder native module is called.
+Until each native method is implemented, the API throws a clear error if the
+`BitcoinerlabBitBox` native module is missing or if an unwired method is called.

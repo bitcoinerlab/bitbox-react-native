@@ -64,8 +64,8 @@ require github.com/BitBoxSwiss/bitbox02-api-go v0.0.0-20260701210453-54ce69d38ae
 ```
 
 This pin was verified with `go mod tidy`, `go test ./...`, and the gomobile
-build script's `iossimulator` target after the initial Go wrapper was added.
-Release artifact strategy is still pending.
+build script's `iossimulator` and `ios,iossimulator` targets. The initial iOS
+gomobile artifact is committed at `ios/Frameworks/Bitboxnative.xcframework`.
 
 Expected direct imports for the first wrapper:
 
@@ -118,10 +118,10 @@ Notes:
 | `btcIsScriptConfigRegistered(...)` | `device.BTCIsScriptConfigRegistered(...)`                                                     |
 | `btcSignPSBT(...)`                 | Parse base64 PSBT, call `device.BTCSignPSBT(...)`, serialize base64 PSBT                      |
 
-The JS `btcRegisterScriptConfig` contract includes `xpubType` for compatibility
-with existing BitBox client shapes. Current upstream Go
-`BTCRegisterScriptConfig` does not take an xpub type. The wrapper should accept
-the argument and ignore it unless upstream adds support.
+The JS contract does not expose legacy xpub encoding choices. `BTCXPub` derives
+the upstream xpub type from `apiNetwork`: `btc` uses `xpub`, and `tbtc` uses
+`tpub`. Current upstream Go `BTCRegisterScriptConfig` does not take an xpub
+type, so the JS/native wrapper does not expose one either.
 
 ## Type Conversion Boundary
 
@@ -175,12 +175,13 @@ on top of that later; do not add a generic command channel.
 
 ## Open Implementation Risks
 
-- A reproducible gomobile build script exists. Generated artifacts will be
-  committed for simplicity once they are useful; exact platform paths are still
-  pending.
-- The exact JS pairing UX still needs a small design pass before real `connect()`
-  can block until `StatusInitialized`.
-- Generated gomobile artifacts should not be committed until native transport
-  work makes them useful.
+- A reproducible gomobile build script exists. The initial generated iOS
+  artifact is committed at `ios/Frameworks/Bitboxnative.xcframework`; Android
+  artifact paths are still pending.
+- The exact JS pairing UX still needs a small design pass for non-BLE or app-side
+  pairing confirmation flows. The initial iOS BLE path auto-confirms app-side
+  pairing after device-side confirmation, matching upstream Bluetooth guidance.
+- The current Go pairing config is in-memory; production-quality reconnects need
+  persisted Noise pairing config.
 - Real behavior must be validated on physical BitBox Nova BLE and BitBox02 USB
   devices.

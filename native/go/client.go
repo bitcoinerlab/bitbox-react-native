@@ -17,8 +17,8 @@ type Client struct {
 	device *firmware.Device
 }
 
-// NewClient creates a client wrapper. Transport wiring is added by platform
-// native code later; until then, device methods return a clear transport error.
+// NewClient creates a disconnected client wrapper. Platform native code should
+// use NewClientWithMobileTransport once it has opened a real transport.
 func NewClient() *Client {
 	return &Client{}
 }
@@ -70,7 +70,7 @@ func (client *Client) RootFingerprint() (string, error) {
 }
 
 // BTCXPub delegates xpub retrieval to upstream bitbox02-api-go.
-func (client *Client) BTCXPub(apiNetwork string, keypath string, xpubType string, display bool) (string, error) {
+func (client *Client) BTCXPub(apiNetwork string, keypath string, display bool) (string, error) {
 	device, err := client.deviceOrError()
 	if err != nil {
 		return "", err
@@ -83,10 +83,7 @@ func (client *Client) BTCXPub(apiNetwork string, keypath string, xpubType string
 	if err != nil {
 		return "", err
 	}
-	parsedXpubType, err := btcXpubType(xpubType)
-	if err != nil {
-		return "", err
-	}
+	parsedXpubType := btcXpubType(coin)
 	return device.BTCXPub(coin, parsedKeypath, parsedXpubType, display)
 }
 
@@ -112,8 +109,7 @@ func (client *Client) BTCAddress(apiNetwork string, keypath string, scriptConfig
 }
 
 // BTCRegisterScriptConfig delegates script config registration to upstream bitbox02-api-go.
-func (client *Client) BTCRegisterScriptConfig(apiNetwork string, scriptConfigJSON string, keypathAccount string, xpubType string, name string) error {
-	_ = xpubType // Upstream BTCRegisterScriptConfig currently does not take this option.
+func (client *Client) BTCRegisterScriptConfig(apiNetwork string, scriptConfigJSON string, keypathAccount string, name string) error {
 	device, err := client.deviceOrError()
 	if err != nil {
 		return err
@@ -131,6 +127,13 @@ func (client *Client) BTCRegisterScriptConfig(apiNetwork string, scriptConfigJSO
 		return err
 	}
 	return device.BTCRegisterScriptConfig(coin, scriptConfig, parsedKeypathAccount, name)
+}
+
+func btcXpubType(coin messages.BTCCoin) messages.BTCPubRequest_XPubType {
+	if coin == messages.BTCCoin_BTC {
+		return messages.BTCPubRequest_XPUB
+	}
+	return messages.BTCPubRequest_TPUB
 }
 
 // BTCIsScriptConfigRegistered checks registration through upstream bitbox02-api-go.

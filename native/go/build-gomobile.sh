@@ -72,8 +72,13 @@ build_one() {
         "$PACKAGE"
       ;;
     ios|iossimulator|macos|maccatalyst|ios,iossimulator)
-      output="$OUT_DIR/bitboxnative-$(safe_target_name "$target").xcframework"
+      if [ "$target" = "ios,iossimulator" ]; then
+        output="$OUT_DIR/Bitboxnative.xcframework"
+      else
+        output="$OUT_DIR/$(safe_target_name "$target")/Bitboxnative.xcframework"
+      fi
       rm -rf "$output"
+      mkdir -p "$(dirname "$output")"
       gomobile bind \
         -target="$target" \
         -prefix="$OBJC_PREFIX" \

@@ -79,6 +79,15 @@ func TestPSBTSignOptions(t *testing.T) {
 	}
 }
 
+func TestBTCXPubTypeDerivesFromCoin(t *testing.T) {
+	if got := btcXpubType(messages.BTCCoin_BTC); got != messages.BTCPubRequest_XPUB {
+		t.Fatalf("got %v, want %v", got, messages.BTCPubRequest_XPUB)
+	}
+	if got := btcXpubType(messages.BTCCoin_TBTC); got != messages.BTCPubRequest_TPUB {
+		t.Fatalf("got %v, want %v", got, messages.BTCPubRequest_TPUB)
+	}
+}
+
 func TestClientCloseWithoutDevice(t *testing.T) {
 	NewClient().Close()
 }

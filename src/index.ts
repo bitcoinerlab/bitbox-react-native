@@ -14,10 +14,8 @@ export type {
   BitBoxNativeModule,
   BitBoxReactNativeSession,
   BitBoxReactNativeTransport,
-  BitBoxRegisterXPubType,
   BitBoxScriptConfig,
   BitBoxScriptConfigWithKeypath,
-  BitBoxXPubType,
   ConnectedBitBoxClient,
   NativeBitBoxConnectParams
 } from './types';

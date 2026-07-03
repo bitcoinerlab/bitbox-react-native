@@ -4,9 +4,9 @@ This directory contains a tiny mobile-friendly wrapper around
 `bitbox02-api-go`. It is intentionally limited to the JavaScript
 `BitBoxNativeModule` contract in `src/types.ts`.
 
-The wrapper currently contains session methods and conversion helpers, but no
-platform transport is wired in yet. Until Swift/Kotlin supplies a real
-read/write/close transport, device methods return a clear transport error.
+The wrapper contains session methods, conversion helpers, and a gomobile-friendly
+transport constructor. iOS now supplies a CoreBluetooth read/write/close
+transport for the initial BitBox Nova path. Android transport is not wired yet.
 
 Use `gomobile bind` to produce:
 
@@ -23,11 +23,12 @@ npm run native:go:build -- ios,iossimulator
 npm run native:go:build -- android
 ```
 
-For package simplicity, the final generated iOS/Android artifacts will be
-committed under platform package directories once they are useful, then shipped
-in npm releases. Normal app developers should not need Go tooling. Advanced
-users can rebuild the artifacts with the commands above and replace the committed
-copies if they need a custom build.
+For package simplicity, generated iOS/Android artifacts are committed under
+platform package directories once they are useful, then shipped in npm releases.
+The initial iOS artifact is committed at
+`../../ios/Frameworks/Bitboxnative.xcframework`. Normal app developers should
+not need Go tooling. Advanced users can rebuild the artifacts with the commands
+above and replace the committed copies if they need a custom build.
 
 Go and `gomobile` are required only for package contributors who build or update
 these bindings. Normal app developers installing a published package should not
