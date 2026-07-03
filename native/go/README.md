@@ -1,8 +1,12 @@
-# Go Native Layer Placeholder
+# Go Native Layer
 
-The recommended implementation path is to wrap `bitbox02-api-go` with a tiny
-mobile-friendly API that exactly matches the JavaScript `BitBoxNativeModule`
-interface in `src/types.ts`.
+This directory contains a tiny mobile-friendly wrapper around
+`bitbox02-api-go`. It is intentionally limited to the JavaScript
+`BitBoxNativeModule` contract in `src/types.ts`.
+
+The wrapper currently contains session methods and conversion helpers, but no
+platform transport is wired in yet. Until Swift/Kotlin supplies a real
+read/write/close transport, device methods return a clear transport error.
 
 Use `gomobile bind` to produce:
 

@@ -63,9 +63,8 @@ go 1.26
 require github.com/BitBoxSwiss/bitbox02-api-go v0.0.0-20260701210453-54ce69d38ae3
 ```
 
-The local survey environment did not have the `go` command installed, so this pin
-still needs to be verified with the actual gomobile toolchain before generated
-artifacts are produced.
+This pin was verified with `go mod tidy` and `go test ./...` after the initial
+Go wrapper was added. Generated gomobile artifacts are still pending.
 
 Expected direct imports for the first wrapper:
 
@@ -175,8 +174,8 @@ on top of that later; do not add a generic command channel.
 
 ## Open Implementation Risks
 
-- Local toolchain verification is pending because `go` was not installed in this
-  environment.
+- Gomobile generated artifact verification is pending until a reproducible build
+  script exists.
 - The exact JS pairing UX still needs a small design pass before real `connect()`
   can block until `StatusInitialized`.
 - Generated gomobile artifacts should not be committed until packaging forces
