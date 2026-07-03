@@ -1,0 +1,75 @@
+{
+  "name": "@bitcoinerlab/bitbox-react-native",
+  "description": "React Native native BitBox client provider for mobile Bitcoin apps.",
+  "homepage": "https://github.com/bitcoinerlab/bitbox-react-native",
+  "version": "0.1.0",
+  "author": "Jose-Luis Landabaso",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bitcoinerlab/bitbox-react-native.git"
+  },
+  "keywords": [
+    "bitcoin",
+    "bitbox",
+    "bitbox02",
+    "bitbox-nova",
+    "hardware-wallet",
+    "react-native",
+    "expo",
+    "bluetooth",
+    "usb",
+    "psbt"
+  ],
+  "bugs": {
+    "url": "https://github.com/bitcoinerlab/bitbox-react-native/issues"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./app.plugin": "./app.plugin.js"
+  },
+  "prettier": "@bitcoinerlab/configs/prettierConfig.json",
+  "eslintConfig": {
+    "extends": "./node_modules/@bitcoinerlab/configs/eslintConfig"
+  },
+  "scripts": {
+    "webdocs": "typedoc --options ./node_modules/@bitcoinerlab/configs/webtypedoc.json",
+    "docs": "typedoc --options ./node_modules/@bitcoinerlab/configs/typedoc.json",
+    "build:src": "tsc --project ./node_modules/@bitcoinerlab/configs/tsconfig.src.json",
+    "build": "npm run build:src",
+    "lint": "./node_modules/@bitcoinerlab/configs/scripts/lint.sh",
+    "format:check": "prettier --check \"src/**/*.ts\" \"docs/**/*.md\" \"*.md\"",
+    "format": "prettier --write \"src/**/*.ts\" \"docs/**/*.md\" \"*.md\"",
+    "test": "npm run lint && npm run build",
+    "prepublishOnly": "rm -rf dist/ && npm test"
+  },
+  "files": [
+    "dist",
+    "app.plugin.js",
+    "android",
+    "ios",
+    "native",
+    "docs",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "expo-modules-core": ">=2.0.0",
+    "react-native": ">=0.76.0"
+  },
+  "peerDependenciesMeta": {
+    "expo-modules-core": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@bitcoinerlab/configs": "^2.0.0"
+  }
+}
