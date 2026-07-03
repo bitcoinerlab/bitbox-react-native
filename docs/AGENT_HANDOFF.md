@@ -14,6 +14,8 @@ structurally compatible.
   Modules path rather than legacy `NativeModules`/bridge modules.
 - The native module is named `BitcoinerlabBitBox` on both platforms.
 - Every native method currently throws an explicit not-implemented error.
+- Upstream BitBox API survey is documented in
+  `docs/UPSTREAM_BITBOX_API_SURVEY.md`.
 - No Go/gomobile binding exists yet.
 - `app.plugin.js` intentionally does not mutate Expo config yet because the
   placeholder has no BLE, USB, or background-mode behavior.
@@ -120,6 +122,9 @@ Use a three-layer design:
 The official BitBox mobile app already uses Go mobile bindings plus native
 transport bridges. Do not embed the whole BitBoxApp backend. Create the minimum
 mobile wrapper needed for the client methods in `src/types.ts`.
+
+See `docs/UPSTREAM_BITBOX_API_SURVEY.md` for the selected upstream Go entry
+points, module pin, and transport boundary.
 
 ## Official Source Pointers
 
@@ -266,10 +271,11 @@ parsing in native code unless absolutely necessary.
 
 ## Immediate Next Steps
 
-1. Add the Go wrapper package under `native/go` and a reproducible gomobile
-   build script.
-2. Wire iOS BLE first for BitBox Nova.
-3. Wire Android USB for classic BitBox02.
-4. Replace the no-op config plugin with real Expo config mutations when the
+1. Verify the `native/go` module pin with a local Go/gomobile toolchain.
+2. Add the tiny Go wrapper package under `native/go` without generated artifacts.
+3. Add a reproducible gomobile build script.
+4. Wire iOS BLE first for BitBox Nova.
+5. Wire Android USB for classic BitBox02.
+6. Replace the no-op config plugin with real Expo config mutations when the
    corresponding transport code needs permissions/resources.
-5. Validate with real hardware and descriptors' `connectors.fromClient(...)`.
+7. Validate with real hardware and descriptors' `connectors.fromClient(...)`.

@@ -16,3 +16,6 @@ https://github.com/BitBoxSwiss/bitbox-wallet-app/blob/master/backend/mobileserve
 
 This package should not embed the whole BitBoxApp backend. It only needs a
 small BitBox client wrapper implementing the native contract in `src/types.ts`.
+
+See `../../docs/UPSTREAM_BITBOX_API_SURVEY.md` for the selected upstream module
+pin, Go imports, and transport boundary.
