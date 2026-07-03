@@ -139,6 +139,12 @@ the native Go wrapper or regenerating mobile bindings. They should not be needed
 by normal app developers installing a published package. Any installation method
 is fine as long as `go` and `gomobile` are available on `PATH`.
 
+For simplicity, generated gomobile artifacts will be committed and published in
+the npm package once they are useful. Normal app developers should get those
+prebuilt artifacts from npm. Advanced users can rebuild them with
+`npm run native:go:build -- <target>` and replace the committed artifacts if
+they need a custom build.
+
 The real native transport/protocol implementation is intentionally absent for
 now. Until it exists, the API throws a clear error if the `BitcoinerlabBitBox`
 native module is missing or if the placeholder native module is called.

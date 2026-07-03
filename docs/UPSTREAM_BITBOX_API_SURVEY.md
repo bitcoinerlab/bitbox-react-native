@@ -175,12 +175,12 @@ on top of that later; do not add a generic command channel.
 
 ## Open Implementation Risks
 
-- A reproducible gomobile build script exists. Release packaging still needs a
-  decision on whether generated artifacts are committed or produced during
-  release.
+- A reproducible gomobile build script exists. Generated artifacts will be
+  committed for simplicity once they are useful; exact platform paths are still
+  pending.
 - The exact JS pairing UX still needs a small design pass before real `connect()`
   can block until `StatusInitialized`.
-- Generated gomobile artifacts should not be committed until packaging forces
-  that decision.
+- Generated gomobile artifacts should not be committed until native transport
+  work makes them useful.
 - Real behavior must be validated on physical BitBox Nova BLE and BitBox02 USB
   devices.

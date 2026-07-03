@@ -13,8 +13,8 @@ Use `gomobile bind` to produce:
 - an iOS framework or xcframework consumed by the Swift Expo module
 - an Android AAR consumed by the Kotlin/Java Expo module
 
-Build artifacts are generated under `native/go/build/`, which is intentionally
-not committed:
+The build script writes temporary artifacts under `native/go/build/`, which is
+intentionally not committed:
 
 ```sh
 npm run native:go:test
@@ -22,6 +22,12 @@ npm run native:go:build -- iossimulator
 npm run native:go:build -- ios,iossimulator
 npm run native:go:build -- android
 ```
+
+For package simplicity, the final generated iOS/Android artifacts will be
+committed under platform package directories once they are useful, then shipped
+in npm releases. Normal app developers should not need Go tooling. Advanced
+users can rebuild the artifacts with the commands above and replace the committed
+copies if they need a custom build.
 
 Go and `gomobile` are required only for package contributors who build or update
 these bindings. Normal app developers installing a published package should not

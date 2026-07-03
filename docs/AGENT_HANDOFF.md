@@ -21,6 +21,10 @@ structurally compatible.
 - `native/go/build-gomobile.sh` builds gomobile artifacts into the ignored
   `native/go/build/` directory.
 - No generated gomobile iOS/Android artifacts exist yet.
+- Artifact strategy is to commit generated gomobile artifacts under platform
+  package directories once they are useful, then ship them in npm releases.
+- Advanced users can rebuild those artifacts with `npm run native:go:build` and
+  replace the committed copies for custom builds.
 - No native transport is wired into the Go wrapper yet.
 - `app.plugin.js` intentionally does not mutate Expo config yet because the
   placeholder has no BLE, USB, or background-mode behavior.
@@ -280,10 +284,10 @@ parsing in native code unless absolutely necessary.
 
 ## Immediate Next Steps
 
-1. Decide where generated gomobile artifacts live and whether they are committed
-   or produced during package release.
-2. Wire iOS BLE first for BitBox Nova and pass its read/write/close transport to
+1. Wire iOS BLE first for BitBox Nova and pass its read/write/close transport to
    the Go wrapper.
+2. Choose exact committed artifact paths while wiring platform builds, likely
+   under `ios/` for xcframeworks and `android/` for AARs.
 3. Wire Android USB for classic BitBox02.
 4. Replace the no-op config plugin with real Expo config mutations when the
    corresponding transport code needs permissions/resources.
