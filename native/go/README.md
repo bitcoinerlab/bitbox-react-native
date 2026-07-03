@@ -9,6 +9,11 @@ Use `gomobile bind` to produce:
 - an iOS framework or xcframework consumed by the Swift Expo module
 - an Android AAR consumed by the Kotlin/Java Expo module
 
+Go and `gomobile` are required only for package contributors who build or update
+these bindings. Normal app developers installing a published package should not
+need Go tooling. Any installation method is fine if `go` and `gomobile` are on
+`PATH`.
+
 The official BitBoxApp already uses this approach through its `mobileserver`
 package:
 

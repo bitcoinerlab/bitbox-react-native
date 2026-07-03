@@ -134,6 +134,11 @@ npm run build
 npm run lint
 ```
 
+Go and `gomobile` are developer-only requirements for contributors working on
+the native Go wrapper or regenerating mobile bindings. They should not be needed
+by normal app developers installing a published package. Any installation method
+is fine as long as `go` and `gomobile` are available on `PATH`.
+
 The real native transport/protocol implementation is intentionally absent for
 now. Until it exists, the API throws a clear error if the `BitcoinerlabBitBox`
 native module is missing or if the placeholder native module is called.

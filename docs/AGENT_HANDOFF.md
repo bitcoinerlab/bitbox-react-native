@@ -208,6 +208,10 @@ Implementation expectations:
 ## Go/Gomobile Layer
 
 The Go layer should expose a small, stable API to native Swift/Kotlin/Java.
+Go and `gomobile` are package maintainer/contributor requirements only. Normal
+app consumers should not need them when installing a published package; published
+native artifacts or equivalent package wiring should cover that path. Any local
+install method is acceptable as long as the commands are available on `PATH`.
 
 Suggested responsibilities:
 
