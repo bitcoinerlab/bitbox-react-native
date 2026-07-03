@@ -118,10 +118,16 @@ Notes:
 | `btcIsScriptConfigRegistered(...)` | `device.BTCIsScriptConfigRegistered(...)`                                                     |
 | `btcSignPSBT(...)`                 | Parse base64 PSBT, call `device.BTCSignPSBT(...)`, serialize base64 PSBT                      |
 
-The JS contract does not expose legacy xpub encoding choices. `BTCXPub` derives
-the upstream xpub type from `apiNetwork`: `btc` uses `xpub`, and `tbtc` uses
-`tpub`. Current upstream Go `BTCRegisterScriptConfig` does not take an xpub
-type, so the JS/native wrapper does not expose one either.
+The JS contract mirrors the raw `bitbox-api` provider-client boundary for
+Bitcoin methods. Descriptors computes and passes the xpub arguments internally
+when a mobile client is injected with `connectors.fromClient(...)`:
+
+- `btcXpub`: `xpub` on mainnet, `tpub` on non-mainnet networks.
+- `btcRegisterScriptConfig`: `autoXpubTpub`.
+
+The Go wrapper converts `btcXpub`'s `xpubType` into the upstream protobuf enum.
+Current upstream Go `BTCRegisterScriptConfig` does not take an xpub type, so the
+wrapper accepts the argument for provider compatibility and ignores it.
 
 ## Type Conversion Boundary
 

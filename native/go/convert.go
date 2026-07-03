@@ -87,6 +87,33 @@ func parseKeypath(value string) ([]uint32, error) {
 	return keypath, nil
 }
 
+func btcXpubType(value string) (messages.BTCPubRequest_XPubType, error) {
+	switch value {
+	case "tpub":
+		return messages.BTCPubRequest_TPUB, nil
+	case "xpub":
+		return messages.BTCPubRequest_XPUB, nil
+	case "ypub":
+		return messages.BTCPubRequest_YPUB, nil
+	case "zpub":
+		return messages.BTCPubRequest_ZPUB, nil
+	case "vpub":
+		return messages.BTCPubRequest_VPUB, nil
+	case "upub":
+		return messages.BTCPubRequest_UPUB, nil
+	case "Vpub":
+		return messages.BTCPubRequest_CAPITAL_VPUB, nil
+	case "Zpub":
+		return messages.BTCPubRequest_CAPITAL_ZPUB, nil
+	case "Upub":
+		return messages.BTCPubRequest_CAPITAL_UPUB, nil
+	case "Ypub":
+		return messages.BTCPubRequest_CAPITAL_YPUB, nil
+	default:
+		return 0, invalidValueError("xpubType", value)
+	}
+}
+
 func formatUnit(value string) (messages.BTCSignInitRequest_FormatUnit, error) {
 	switch value {
 	case "default", "":

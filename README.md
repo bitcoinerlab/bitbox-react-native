@@ -54,8 +54,8 @@ managed workflow, but it does need the Expo Modules native infrastructure. A
 separate plain React Native TurboModule/codegen implementation is not included.
 
 This package does not depend on `@bitcoinerlab/descriptors`. Its TypeScript
-types intentionally define the native client contract locally so the package can
-be used independently.
+types intentionally define the BitBox provider-client contract locally so the
+package can be used independently.
 
 ## API
 
@@ -80,13 +80,13 @@ Current connection helpers:
 - `ReactNativeBitBoxClient`: thin wrapper around the native module session.
 
 The native module is named `BitcoinerlabBitBox` and is expected to expose this
-minimal Bitcoin-only BitBox client surface:
+Bitcoin-only, raw `bitbox-api`-compatible provider-client surface:
 
 - `version()`
 - `rootFingerprint()`
-- `btcXpub(...)`
+- `btcXpub(apiNetwork, keypath, xpubType, display)`
 - `btcAddress(...)`
-- `btcRegisterScriptConfig(...)`
+- `btcRegisterScriptConfig(apiNetwork, scriptConfig, keypathAccount, xpubType, name?)`
 - `btcIsScriptConfigRegistered(...)`
 - `btcSignPSBT(...)`
 

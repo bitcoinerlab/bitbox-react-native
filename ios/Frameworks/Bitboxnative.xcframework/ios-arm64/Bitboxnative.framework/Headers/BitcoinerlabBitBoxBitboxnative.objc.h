@@ -51,7 +51,7 @@ string or the short BitBox Nova BLE product string.
 /**
  * BTCRegisterScriptConfig delegates script config registration to upstream bitbox02-api-go.
  */
-- (BOOL)btcRegisterScriptConfig:(NSString* _Nullable)apiNetwork scriptConfigJSON:(NSString* _Nullable)scriptConfigJSON keypathAccount:(NSString* _Nullable)keypathAccount name:(NSString* _Nullable)name error:(NSError* _Nullable* _Nullable)error;
+- (BOOL)btcRegisterScriptConfig:(NSString* _Nullable)apiNetwork scriptConfigJSON:(NSString* _Nullable)scriptConfigJSON keypathAccount:(NSString* _Nullable)keypathAccount xpubType:(NSString* _Nullable)xpubType name:(NSString* _Nullable)name error:(NSError* _Nullable* _Nullable)error;
 /**
  * BTCSignPSBT parses, signs, and serializes a base64 PSBT through upstream bitbox02-api-go.
  */
@@ -59,7 +59,7 @@ string or the short BitBox Nova BLE product string.
 /**
  * BTCXPub delegates xpub retrieval to upstream bitbox02-api-go.
  */
-- (NSString* _Nonnull)btcxPub:(NSString* _Nullable)apiNetwork keypath:(NSString* _Nullable)keypath display:(BOOL)display error:(NSError* _Nullable* _Nullable)error;
+- (NSString* _Nonnull)btcxPub:(NSString* _Nullable)apiNetwork keypath:(NSString* _Nullable)keypath xpubType:(NSString* _Nullable)xpubType display:(BOOL)display error:(NSError* _Nullable* _Nullable)error;
 /**
  * Close closes the active BitBox session if one is connected.
  */

@@ -6,8 +6,10 @@ import type {
   BitBoxKeypath,
   BitBoxNativeModule,
   BitBoxReactNativeSession,
+  BitBoxRegisterXPubType,
   BitBoxScriptConfig,
   BitBoxScriptConfigWithKeypath,
+  BitBoxXPubType,
   ConnectedBitBoxClient,
   NativeBitBoxConnectParams
 } from './types';
@@ -51,12 +53,14 @@ export class ReactNativeBitBoxClient implements ConnectedBitBoxClient {
   btcXpub(
     apiNetwork: BitBoxApiNetwork,
     keypath: BitBoxKeypath,
+    xpubType: BitBoxXPubType,
     display: boolean
   ): Promise<string> {
     return this.nativeModule.btcXpub(
       this.session.id,
       apiNetwork,
       keypath,
+      xpubType,
       display
     );
   }
@@ -80,6 +84,7 @@ export class ReactNativeBitBoxClient implements ConnectedBitBoxClient {
     apiNetwork: BitBoxApiNetwork,
     scriptConfig: BitBoxScriptConfig,
     keypathAccount: BitBoxKeypath | undefined,
+    xpubType: BitBoxRegisterXPubType,
     name?: string
   ): Promise<void> {
     return this.nativeModule.btcRegisterScriptConfig(
@@ -87,6 +92,7 @@ export class ReactNativeBitBoxClient implements ConnectedBitBoxClient {
       apiNetwork,
       scriptConfig,
       keypathAccount,
+      xpubType,
       name
     );
   }

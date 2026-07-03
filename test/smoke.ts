@@ -4,8 +4,10 @@ import type {
   BitBoxFormatUnit,
   BitBoxKeypath,
   BitBoxNativeModule,
+  BitBoxRegisterXPubType,
   BitBoxScriptConfig,
   BitBoxScriptConfigWithKeypath,
+  BitBoxXPubType,
   ConnectedBitBoxClient
 } from '../src';
 
@@ -18,6 +20,7 @@ const nativeModule: BitBoxNativeModule = {
     _sessionId: string,
     _apiNetwork: BitBoxApiNetwork,
     _keypath: BitBoxKeypath,
+    _xpubType: BitBoxXPubType,
     _display: boolean
   ) => 'xpub',
   btcAddress: async (
@@ -32,6 +35,7 @@ const nativeModule: BitBoxNativeModule = {
     _apiNetwork: BitBoxApiNetwork,
     _scriptConfig: BitBoxScriptConfig,
     _keypathAccount: BitBoxKeypath | undefined,
+    _xpubType: BitBoxRegisterXPubType,
     _name?: string
   ) => undefined,
   btcIsScriptConfigRegistered: async (

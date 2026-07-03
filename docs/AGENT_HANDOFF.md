@@ -77,14 +77,14 @@ type BitBoxReactNativeSession = {
 ```
 
 Every native device method receives the `sessionId` first. The wrapped client
-exposed to application code removes the session argument and provides this
-minimal BitBox client interface:
+exposed to application code removes the session argument and provides this raw
+`bitbox-api`-compatible provider-client interface:
 
 - `version(sessionId): Promise<string>`
 - `rootFingerprint(sessionId): Promise<string>`
-- `btcXpub(sessionId, apiNetwork, keypath, display): Promise<string>`
+- `btcXpub(sessionId, apiNetwork, keypath, xpubType, display): Promise<string>`
 - `btcAddress(sessionId, apiNetwork, keypath, scriptConfig, display): Promise<string>`
-- `btcRegisterScriptConfig(sessionId, apiNetwork, scriptConfig, keypathAccount, name?): Promise<void>`
+- `btcRegisterScriptConfig(sessionId, apiNetwork, scriptConfig, keypathAccount, xpubType, name?): Promise<void>`
 - `btcIsScriptConfigRegistered(sessionId, apiNetwork, scriptConfig, keypathAccount?): Promise<boolean>`
 - `btcSignPSBT(sessionId, apiNetwork, psbt, forceScriptConfig, formatUnit): Promise<string>`
 
@@ -95,10 +95,16 @@ minimal BitBox client interface:
 
 Do not ask application code to pass BitBox vendor `coin` values.
 
+Descriptors computes and passes the raw BitBox xpub arguments internally when a
+mobile client is injected with `connectors.fromClient(...)`:
+
+- `btcXpub`: `xpub` on mainnet, `tpub` on non-mainnet networks.
+- `btcRegisterScriptConfig`: `autoXpubTpub`.
+
 ## Descriptors Integration
 
 Consuming apps that use `@bitcoinerlab/descriptors` can install descriptors
-separately and inject the connected native client:
+separately and inject the connected native provider client:
 
 ```ts
 import { connectBitBoxNovaBle } from '@bitcoinerlab/bitbox-react-native';
@@ -121,7 +127,7 @@ const key = await keyExpression({ manager, keyPath: "m/84'/0'/0'" });
 await client.close();
 ```
 
-Keep `@bitcoinerlab/descriptors/src/hww` transport-free and device-agnostic.
+Keep `@bitcoinerlab/descriptors` transport-free and device-agnostic.
 
 ## Recommended Architecture
 

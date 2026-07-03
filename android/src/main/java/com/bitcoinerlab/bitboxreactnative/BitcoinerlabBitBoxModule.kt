@@ -35,6 +35,7 @@ class BitcoinerlabBitBoxModule : Module() {
     AsyncFunction("btcXpub") { sessionId: String,
       apiNetwork: String,
       keypath: Any,
+      xpubType: String,
       display: Boolean ->
       throw BitcoinerlabBitBoxNotImplementedException("btcXpub")
     }
@@ -51,6 +52,7 @@ class BitcoinerlabBitBoxModule : Module() {
       apiNetwork: String,
       scriptConfig: Map<String, Any?>,
       keypathAccount: Any?,
+      xpubType: String,
       name: String? ->
       throw BitcoinerlabBitBoxNotImplementedException("btcRegisterScriptConfig")
     }

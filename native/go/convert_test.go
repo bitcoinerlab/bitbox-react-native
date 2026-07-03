@@ -79,12 +79,15 @@ func TestPSBTSignOptions(t *testing.T) {
 	}
 }
 
-func TestBTCXPubTypeDerivesFromCoin(t *testing.T) {
-	if got := btcXpubType(messages.BTCCoin_BTC); got != messages.BTCPubRequest_XPUB {
+func TestBTCXPubType(t *testing.T) {
+	if got, err := btcXpubType("xpub"); err != nil || got != messages.BTCPubRequest_XPUB {
 		t.Fatalf("got %v, want %v", got, messages.BTCPubRequest_XPUB)
 	}
-	if got := btcXpubType(messages.BTCCoin_TBTC); got != messages.BTCPubRequest_TPUB {
+	if got, err := btcXpubType("tpub"); err != nil || got != messages.BTCPubRequest_TPUB {
 		t.Fatalf("got %v, want %v", got, messages.BTCPubRequest_TPUB)
+	}
+	if _, err := btcXpubType("bad"); err == nil {
+		t.Fatalf("expected invalid xpub type error")
 	}
 }
 

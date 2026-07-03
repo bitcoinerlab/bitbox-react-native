@@ -169,9 +169,10 @@ public class BitcoinerlabBitBoxModule: Module {
       _ sessionId: String,
       _ apiNetwork: String,
       _ keypath: Either<String, [Int]>,
+      _ xpubType: String,
       _ display: Bool
     ) throws -> String in
-      _ = (sessionId, apiNetwork, keypath, display)
+      _ = (sessionId, apiNetwork, keypath, xpubType, display)
       throw bitboxNotImplemented("btcXpub")
     }
 
@@ -191,9 +192,10 @@ public class BitcoinerlabBitBoxModule: Module {
       _ apiNetwork: String,
       _ scriptConfig: [String: Any],
       _ keypathAccount: Either<String, [Int]>?,
+      _ xpubType: String,
       _ name: String?
     ) throws in
-      _ = (sessionId, apiNetwork, scriptConfig, keypathAccount, name)
+      _ = (sessionId, apiNetwork, scriptConfig, keypathAccount, xpubType, name)
       throw bitboxNotImplemented("btcRegisterScriptConfig")
     }
 
