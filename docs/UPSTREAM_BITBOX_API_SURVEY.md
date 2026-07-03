@@ -63,8 +63,9 @@ go 1.26
 require github.com/BitBoxSwiss/bitbox02-api-go v0.0.0-20260701210453-54ce69d38ae3
 ```
 
-This pin was verified with `go mod tidy` and `go test ./...` after the initial
-Go wrapper was added. Generated gomobile artifacts are still pending.
+This pin was verified with `go mod tidy`, `go test ./...`, and the gomobile
+build script's `iossimulator` target after the initial Go wrapper was added.
+Release artifact strategy is still pending.
 
 Expected direct imports for the first wrapper:
 
@@ -174,8 +175,9 @@ on top of that later; do not add a generic command channel.
 
 ## Open Implementation Risks
 
-- Gomobile generated artifact verification is pending until a reproducible build
-  script exists.
+- A reproducible gomobile build script exists. Release packaging still needs a
+  decision on whether generated artifacts are committed or produced during
+  release.
 - The exact JS pairing UX still needs a small design pass before real `connect()`
   can block until `StatusInitialized`.
 - Generated gomobile artifacts should not be committed until packaging forces

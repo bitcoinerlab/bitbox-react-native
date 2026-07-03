@@ -18,6 +18,8 @@ structurally compatible.
   `docs/UPSTREAM_BITBOX_API_SURVEY.md`.
 - A tiny Go wrapper package exists under `native/go` and imports upstream
   `bitbox02-api-go`.
+- `native/go/build-gomobile.sh` builds gomobile artifacts into the ignored
+  `native/go/build/` directory.
 - No generated gomobile iOS/Android artifacts exist yet.
 - No native transport is wired into the Go wrapper yet.
 - `app.plugin.js` intentionally does not mutate Expo config yet because the
@@ -278,12 +280,11 @@ parsing in native code unless absolutely necessary.
 
 ## Immediate Next Steps
 
-1. Add a reproducible gomobile build script.
-2. Decide where generated gomobile artifacts live and whether they are committed
+1. Decide where generated gomobile artifacts live and whether they are committed
    or produced during package release.
-3. Wire iOS BLE first for BitBox Nova and pass its read/write/close transport to
+2. Wire iOS BLE first for BitBox Nova and pass its read/write/close transport to
    the Go wrapper.
-4. Wire Android USB for classic BitBox02.
-5. Replace the no-op config plugin with real Expo config mutations when the
+3. Wire Android USB for classic BitBox02.
+4. Replace the no-op config plugin with real Expo config mutations when the
    corresponding transport code needs permissions/resources.
-6. Validate with real hardware and descriptors' `connectors.fromClient(...)`.
+5. Validate with real hardware and descriptors' `connectors.fromClient(...)`.

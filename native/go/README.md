@@ -13,6 +13,16 @@ Use `gomobile bind` to produce:
 - an iOS framework or xcframework consumed by the Swift Expo module
 - an Android AAR consumed by the Kotlin/Java Expo module
 
+Build artifacts are generated under `native/go/build/`, which is intentionally
+not committed:
+
+```sh
+npm run native:go:test
+npm run native:go:build -- iossimulator
+npm run native:go:build -- ios,iossimulator
+npm run native:go:build -- android
+```
+
 Go and `gomobile` are required only for package contributors who build or update
 these bindings. Normal app developers installing a published package should not
 need Go tooling. Any installation method is fine if `go` and `gomobile` are on
