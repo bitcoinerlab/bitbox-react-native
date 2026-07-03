@@ -1,6 +1,8 @@
-# Android Native Implementation Placeholder
+# Android Native Implementation Skeleton
 
-This directory is reserved for the future Android implementation.
+This directory contains an Expo Modules API placeholder named
+`BitcoinerlabBitBox`. It is only native package wiring for now; every exported
+method throws a not-implemented error.
 
 The first practical Android target is USB Host support for classic BitBox02,
 mirroring the official BitBoxApp Java code. A second Android target can be BLE

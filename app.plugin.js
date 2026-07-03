@@ -1,8 +1,8 @@
-// Placeholder Expo config plugin.
+// Expo Modules autolinking is declared in expo-module.config.json.
 //
-// The native implementation still needs to add iOS Bluetooth permissions,
-// Android USB/Bluetooth permissions, Android USB device filters, and native
-// module registration. See docs/AGENT_HANDOFF.md before changing this file.
+// This plugin intentionally makes no config mutations while the native module is
+// only a not-implemented skeleton. BLE permissions, USB filters, and background
+// modes should be added with the real transport implementations.
 
 module.exports = function withBitcoinerlabBitBoxReactNative(config) {
   return config;

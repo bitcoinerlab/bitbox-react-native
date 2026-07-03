@@ -1,0 +1,11 @@
+{
+  "platforms": ["ios", "android"],
+  "ios": {
+    "modules": ["BitcoinerlabBitBoxModule"]
+  },
+  "android": {
+    "modules": [
+      "com.bitcoinerlab.bitboxreactnative.BitcoinerlabBitBoxModule"
+    ]
+  }
+}

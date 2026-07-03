@@ -1,0 +1,31 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+group = 'com.bitcoinerlab.bitboxreactnative'
+version = '0.1.0'
+
+def safeExtGet(prop, fallback) {
+  rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
+}
+
+def expoModulesCorePlugin = new File(
+  project(':expo-modules-core').projectDir.absolutePath,
+  'ExpoModulesCorePlugin.gradle'
+)
+
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+
+android {
+  namespace 'com.bitcoinerlab.bitboxreactnative'
+  compileSdkVersion safeExtGet('compileSdkVersion', 35)
+
+  defaultConfig {
+    minSdkVersion safeExtGet('minSdkVersion', 23)
+    targetSdkVersion safeExtGet('targetSdkVersion', 35)
+  }
+}
+
+dependencies {
+  implementation project(':expo-modules-core')
+}

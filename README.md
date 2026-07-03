@@ -9,9 +9,11 @@ are not implemented yet.
 ## Status
 
 - JavaScript API: scaffolded.
-- iOS BitBox Nova BLE native module: not implemented.
-- Android BitBox02 USB native module: not implemented.
-- Android BitBox Nova BLE native module: not implemented.
+- Expo Modules / React Native New Architecture-compatible native package
+  foundation: scaffolded.
+- iOS BitBox Nova BLE transport/protocol: not implemented.
+- Android BitBox02 USB transport/protocol: not implemented.
+- Android BitBox Nova BLE transport/protocol: not implemented.
 - Expo Go support: not possible, because custom native code is required.
 
 Do not use this package as proof that BitBox works in React Native today. It is
@@ -39,9 +41,14 @@ compatible.
 npm install @bitcoinerlab/bitbox-react-native
 ```
 
-This package will require a React Native app that can load custom native code,
-such as a bare React Native app or an Expo prebuild/dev-client/EAS build. It
-will not work in Expo Go.
+This package will require a React Native app that can load custom native code.
+It can be a bare React Native app with Expo Modules installed/configured, or an
+Expo prebuild/dev-client/EAS build. It will not work in Expo Go.
+
+The native foundation uses Expo Modules API rather than legacy React Native
+`NativeModules` wiring. A bare React Native app does not need to use the Expo
+managed workflow, but it does need the Expo Modules native infrastructure. A
+separate plain React Native TurboModule/codegen implementation is not included.
 
 This package does not depend on `@bitcoinerlab/descriptors`. Its TypeScript
 types intentionally define the native client contract locally so the package can
@@ -69,8 +76,8 @@ Current connection helpers:
 - `connectBitBoxAndroidUsb(params?)`: Android USB intent for classic BitBox02.
 - `ReactNativeBitBoxClient`: thin wrapper around the native module session.
 
-The native module is expected to expose this minimal Bitcoin-only BitBox client
-surface:
+The native module is named `BitcoinerlabBitBox` and is expected to expose this
+minimal Bitcoin-only BitBox client surface:
 
 - `version()`
 - `rootFingerprint()`
@@ -111,9 +118,13 @@ try {
 
 ## Native Implementation
 
-See `docs/AGENT_HANDOFF.md` before implementing native code. It includes the
-official BitBoxApp source pointers, BLE UUIDs, Android USB IDs, Expo config
-plugin requirements, and the recommended Go/gomobile boundary.
+This repository now includes Expo Modules API placeholders for iOS and Android.
+They are build-time wiring only and throw explicit "not implemented" errors for
+every method. The JavaScript resolver intentionally does not fall back to legacy
+`react-native` `NativeModules`. See `docs/AGENT_HANDOFF.md` before implementing
+native transport or protocol code. It includes the official BitBoxApp source
+pointers, BLE UUIDs, Android USB IDs, Expo config plugin requirements, and the
+recommended Go/gomobile boundary.
 
 ## Development
 
@@ -123,5 +134,6 @@ npm run build
 npm run lint
 ```
 
-The native implementation is intentionally absent for now. Until it exists, the
-API throws a clear error if the `BitcoinerlabBitBox` native module is missing.
+The real native transport/protocol implementation is intentionally absent for
+now. Until it exists, the API throws a clear error if the `BitcoinerlabBitBox`
+native module is missing or if the placeholder native module is called.

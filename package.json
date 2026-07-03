@@ -53,7 +53,9 @@
   },
   "files": [
     "dist",
+    "BitcoinerlabBitBoxReactNative.podspec",
     "app.plugin.js",
+    "expo-module.config.json",
     "android",
     "ios",
     "native",

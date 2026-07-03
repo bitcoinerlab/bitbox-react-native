@@ -9,13 +9,21 @@ structurally compatible.
 ## Current State
 
 - TypeScript wrapper API exists in `src/`.
-- No iOS native module exists yet.
-- No Android native module exists yet.
+- Expo Modules API placeholders exist for iOS and Android.
+- The native foundation targets React Native's New Architecture-compatible Expo
+  Modules path rather than legacy `NativeModules`/bridge modules.
+- The native module is named `BitcoinerlabBitBox` on both platforms.
+- Every native method currently throws an explicit not-implemented error.
 - No Go/gomobile binding exists yet.
-- `app.plugin.js` is a placeholder and intentionally does not mutate Expo config
-  yet.
-- Calling `connectBitBox(...)` fails with a clear missing-native-module error
-  until the native module is implemented.
+- `app.plugin.js` intentionally does not mutate Expo config yet because the
+  placeholder has no BLE, USB, or background-mode behavior.
+- Expo Modules autolinking is declared in `expo-module.config.json`.
+- Bare React Native apps are acceptable hosts if they install/configure Expo
+  Modules native infrastructure. A separate plain React Native
+  TurboModule/codegen implementation does not exist yet.
+- Calling `connectBitBox(...)` fails with a clear missing-native-module error if
+  the native module is not linked, or a clear not-implemented error if the
+  placeholder native module is linked.
 - `src/types.ts` intentionally owns the native BitBox client contract. Do not
   import types from `@bitcoinerlab/descriptors` just for convenience; that would
   couple this package to descriptors and recreate dependency issues.
@@ -25,6 +33,8 @@ structurally compatible.
 - Do not use WebHID in React Native.
 - Do not use BitBoxBridge as the mobile path.
 - Do not depend on Expo Go; it cannot load this custom native module.
+- Do not add a legacy `react-native` `NativeModules` fallback unless the package
+  intentionally grows a separate legacy implementation.
 - Do not fake device behavior in production APIs.
 - Do not change `@bitcoinerlab/descriptors` to know about React Native.
 - Do not make this package depend on `@bitcoinerlab/descriptors` for types,
@@ -213,8 +223,8 @@ Suggested constraints:
 
 ## Expo Config Plugin Plan
 
-`app.plugin.js` currently returns config unchanged. Once native code exists, it
-should add:
+`app.plugin.js` currently returns config unchanged. Once real native transport
+code exists, it should add:
 
 - iOS Bluetooth usage description.
 - iOS background mode only if the native implementation truly needs it.
@@ -256,12 +266,10 @@ parsing in native code unless absolutely necessary.
 
 ## Immediate Next Steps
 
-1. Decide whether to implement the native module with Expo Modules API or plain
-   React Native Turbo/legacy modules.
-2. Add the native module skeleton exposing `BitcoinerlabBitBox`.
-3. Add the Go wrapper package under `native/go` and a reproducible gomobile
+1. Add the Go wrapper package under `native/go` and a reproducible gomobile
    build script.
-4. Wire iOS BLE first for BitBox Nova.
-5. Wire Android USB for classic BitBox02.
-6. Replace this placeholder plugin with real Expo config mutations.
-7. Validate with real hardware and descriptors' `connectors.fromClient(...)`.
+2. Wire iOS BLE first for BitBox Nova.
+3. Wire Android USB for classic BitBox02.
+4. Replace the no-op config plugin with real Expo config mutations when the
+   corresponding transport code needs permissions/resources.
+5. Validate with real hardware and descriptors' `connectors.fromClient(...)`.

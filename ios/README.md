@@ -1,10 +1,11 @@
-# iOS Native Implementation Placeholder
+# iOS Native Implementation Skeleton
 
-This directory is reserved for the future iOS implementation.
+This directory contains an Expo Modules API placeholder named
+`BitcoinerlabBitBox`. It is only native package wiring for now; every exported
+method throws a not-implemented error.
 
-The expected path is an Expo Modules / React Native native module implemented
-in Swift, using CoreBluetooth to talk to BitBox Nova devices. The official
-BitBoxApp implementation to study first is:
+The expected next path is Swift/CoreBluetooth support for BitBox Nova devices.
+The official BitBoxApp implementation to study first is:
 
 https://github.com/BitBoxSwiss/bitbox-wallet-app/blob/master/frontends/ios/BitBoxApp/BitBoxApp/Bluetooth.swift
 

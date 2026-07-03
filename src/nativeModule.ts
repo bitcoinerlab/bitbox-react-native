@@ -2,11 +2,11 @@ import type { BitBoxNativeModule } from './types';
 
 const MODULE_NAME = 'BitcoinerlabBitBox';
 
-type ReactNativeRequire = (specifier: string) => {
-  NativeModules?: Record<string, unknown>;
+type ExpoModulesRequire = (specifier: string) => {
+  requireNativeModule?: (moduleName: string) => unknown;
 };
 
-declare const require: ReactNativeRequire;
+declare const require: ExpoModulesRequire;
 
 function nativeModuleMissingError(moduleName: string): Error {
   return new Error(
@@ -17,15 +17,13 @@ function nativeModuleMissingError(moduleName: string): Error {
 export function getBitBoxNativeModule(
   moduleName = MODULE_NAME
 ): BitBoxNativeModule {
-  let reactNative: ReturnType<ReactNativeRequire>;
   try {
-    reactNative = require('react-native');
+    const expoModule =
+      require('expo-modules-core').requireNativeModule?.(moduleName);
+    if (expoModule) return expoModule as BitBoxNativeModule;
   } catch (error) {
     void error;
-    throw nativeModuleMissingError(moduleName);
   }
 
-  const nativeModule = reactNative.NativeModules?.[moduleName];
-  if (!nativeModule) throw nativeModuleMissingError(moduleName);
-  return nativeModule as BitBoxNativeModule;
+  throw nativeModuleMissingError(moduleName);
 }
