@@ -40,7 +40,7 @@ This repo should own only:
 - iOS CoreBluetooth and Android USB/BLE transport adapters.
 - Session lifecycle and JS/native serialization.
 - A tiny Go wrapper around upstream `bitbox02-api-go`.
-- Minimal persisted Noise pairing config required by `firmware.ConfigInterface`.
+- Noise pairing config only where required by the chosen transport/UX.
 
 This repo should not own:
 
@@ -179,6 +179,21 @@ The Go wrapper should expose a small event/callback bridge to native code and a
 pairing confirmation method. The public JS `onPairingCode` flow should be wired
 on top of that later; do not add a generic command channel.
 
+For BLE, the wrapper passes
+`firmware.WithOptionalNoisePairingConfirmation(true)`. Upstream documents this
+option as appropriate only when the Noise channel is wrapped in another secure
+transport, such as paired Bluetooth. In that mode, app-side trust of the device
+Noise static pubkey is intentionally optional; if the device still requires its
+own pairing confirmation, `Init()` enters `StatusUnpaired` and the wrapper only
+calls `ChannelHashVerify(true)` after the device-side verification query has
+succeeded.
+
+The current in-memory `ConfigInterface` therefore does not block the proven iOS
+BitBox Nova BLE reconnect path. Persisted Noise config remains a deliberate
+future design item for non-BLE transports, explicit app-side pairing UX, or if
+physical-device testing reveals a BLE case that cannot rely on platform
+Bluetooth pairing/bonding alone.
+
 ## Open Implementation Risks
 
 - A reproducible gomobile build script exists. The initial generated iOS
@@ -187,7 +202,7 @@ on top of that later; do not add a generic command channel.
 - The exact JS pairing UX still needs a small design pass for non-BLE or app-side
   pairing confirmation flows. The initial iOS BLE path auto-confirms app-side
   pairing after device-side confirmation, matching upstream Bluetooth guidance.
-- The current Go pairing config is in-memory; production-quality reconnects need
-  persisted Noise pairing config.
+- The current Go pairing config is in-memory. Persist it only after defining the
+  exact non-BLE or explicit pairing UX requirement.
 - Real behavior must be validated on physical BitBox Nova BLE and BitBox02 USB
   devices.

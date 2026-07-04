@@ -13,8 +13,9 @@ transport wiring, but it is not production-ready yet.
   foundation: scaffolded.
 - iOS BitBox Nova BLE `connect`, `disconnect`, `version`, and
   `rootFingerprint`: wired through CoreBluetooth, gomobile, and
-  `bitbox02-api-go`; still needs physical hardware validation.
-- iOS Bitcoin methods beyond `rootFingerprint`: not implemented in Swift yet.
+  `bitbox02-api-go`; smoke-tested on physical hardware.
+- iOS Bitcoin methods beyond `rootFingerprint`: wired through the gomobile Go
+  wrapper and compile-checked; still need physical hardware validation.
 - Android BitBox02 USB transport/protocol: not implemented.
 - Android BitBox Nova BLE transport/protocol: not implemented.
 - Expo Go support: not possible, because custom native code is required.
@@ -122,11 +123,10 @@ try {
 ## Native Implementation
 
 This repository includes an Expo Modules API native module for iOS and Android.
-The iOS module has initial CoreBluetooth transport wiring for BitBox Nova and
-uses the vendored gomobile framework at `ios/Frameworks/Bitboxnative.xcframework`
-for the BitBox protocol. Android remains placeholder-only. The JavaScript
-resolver intentionally does not fall back to legacy `react-native`
-`NativeModules`.
+The iOS module has CoreBluetooth transport wiring for BitBox Nova and uses the
+vendored gomobile framework at `ios/Frameworks/Bitboxnative.xcframework` for the
+BitBox protocol. Android remains placeholder-only. The JavaScript resolver
+intentionally does not fall back to legacy `react-native` `NativeModules`.
 
 ## Development
 
@@ -147,5 +147,5 @@ prebuilt artifacts from npm. Advanced users can rebuild them with
 `npm run native:go:build -- <target>` and replace the committed artifacts if
 they need a custom build.
 
-Until each native method is implemented, the API throws a clear error if the
-`BitcoinerlabBitBox` native module is missing or if an unwired method is called.
+The API throws a clear error if the `BitcoinerlabBitBox` native module is
+missing or if an unwired platform method is called.

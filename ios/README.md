@@ -7,13 +7,15 @@ Current status:
 
 - CoreBluetooth scan/connect/discover/read/write/close is wired for BitBox Nova
   BLE.
-- `connect`, `disconnect`, `version`, and `rootFingerprint` call the gomobile Go
-  wrapper.
-- The BTC xpub/address/register/signing methods still throw not-implemented
-  errors until Swift serialization into the Go wrapper is added.
+- `connect`, `disconnect`, `version`, `rootFingerprint`, `btcXpub`,
+  `btcAddress`, `btcRegisterScriptConfig`, `btcIsScriptConfigRegistered`, and
+  `btcSignPSBT` call the gomobile Go wrapper.
+- BTC method Swift serialization is compile-checked in the smoke app but still
+  needs physical-device validation.
 - A local physical-device smoke test connected to a BitBox Nova over BLE and
-  printed the root fingerprint. Pairing UX is still rough and persisted pairing
-  storage is not implemented yet.
+  printed the root fingerprint. The tested BLE reconnect path relies on iOS
+  Bluetooth pairing/bonding plus upstream optional Noise pairing confirmation;
+  package-owned persisted Noise storage is not implemented yet.
 
 Packaging notes:
 

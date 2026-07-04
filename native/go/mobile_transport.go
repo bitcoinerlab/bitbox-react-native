@@ -76,6 +76,10 @@ func NewClientWithMobileTransport(transport MobileTransport, productString strin
 	}
 
 	communication := u2fhid.NewCommunication(&mobileTransportAdapter{transport: transport}, bitbox02FirmwareCommand)
+	// BLE is already wrapped by platform Bluetooth pairing/bonding, so the
+	// upstream app-side Noise trust cache can remain in-memory for this initial
+	// mobile path. Non-BLE transports may need persisted config before app-side
+	// pairing confirmation is exposed.
 	device := firmware.NewDevice(
 		version,
 		&product,
