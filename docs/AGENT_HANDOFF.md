@@ -208,9 +208,21 @@ Implementation expectations:
 
 Do not try to make `bitbox-api` WASM work on iOS React Native.
 
+## Android Transport Goal
+
+Android should support both USB and BLE so apps can choose the transport that
+fits the user's device and situation. The JS API already accepts a `transport`
+option; keep that single selection point instead of exposing separate Android
+client types. For `auto`, prefer USB when an attached BitBox is available and
+permissioned, then fall back to BLE discovery for BitBox Nova.
+
+The first Android implementation can be split into USB and BLE milestones, but
+the end state should cover both on real hardware.
+
 ## Android USB Notes
 
-Expected first Android target: classic BitBox02 over Android USB Host.
+Android USB target: classic BitBox02 and BitBox Nova over Android USB Host where
+the hardware exposes the same BitBox USB interface.
 
 Known IDs from the official app:
 
@@ -229,9 +241,8 @@ Implementation expectations:
 
 ## Android BLE Notes
 
-Android BLE should be feasible for BitBox Nova, but it is not the first proven
-path from the official Android source pointers above. Reuse the iOS BLE UUIDs
-and flow, then validate on real Nova hardware.
+Android BLE target: BitBox Nova. Reuse the iOS BLE UUIDs and flow, then
+validate on real Nova hardware.
 
 Implementation expectations:
 
@@ -287,6 +298,7 @@ Add tests in phases:
 - Native unit tests for serialization and error handling where practical.
 - Manual iOS BitBox Nova BLE smoke test on real hardware.
 - Manual Android USB smoke test on real hardware.
+- Manual Android BitBox Nova BLE smoke test on real hardware.
 - Manual descriptors integration test that uses `connectors.fromClient(...)` to
   derive xpubs, register/display a wallet, and sign a PSBT.
 
@@ -313,6 +325,10 @@ parsing in native code unless absolutely necessary.
    storage.
 2. Wire iOS Swift serialization for BTC xpub/address/register/signPSBT methods
    into the existing Go wrapper.
-3. Wire Android USB for classic BitBox02.
-4. Validate with descriptors' `connectors.fromClient(...)` once BTC methods are
-   wired.
+3. Validate iOS with descriptors' `connectors.fromClient(...)` once BTC methods
+   are wired.
+4. Wire Android USB and BLE, with `auto` preferring USB when available and BLE as
+   the Nova fallback.
+5. Validate Android USB and BLE on real hardware.
+6. Validate Android with descriptors' `connectors.fromClient(...)` once Android
+   BTC methods are wired.
