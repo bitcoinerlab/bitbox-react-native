@@ -17,7 +17,9 @@ Pod::Spec.new do |s|
 
   s.dependency 'ExpoModulesCore'
   s.frameworks = 'CoreBluetooth'
-  s.source_files = 'ios/**/*.{h,m,mm,swift,hpp,cpp}'
-  s.exclude_files = 'ios/Frameworks/**'
+  s.source_files = 'ios/*.swift'
   s.vendored_frameworks = 'ios/Frameworks/Bitboxnative.xcframework'
+  s.pod_target_xcconfig = {
+    'FRAMEWORK_SEARCH_PATHS' => '$(inherited) "$(PODS_TARGET_SRCROOT)/ios/Frameworks/Bitboxnative.xcframework/ios-arm64" "$(PODS_TARGET_SRCROOT)/ios/Frameworks/Bitboxnative.xcframework/ios-arm64_x86_64-simulator"'
+  }
 end

@@ -1,6 +1,8 @@
 {
   "platforms": ["ios", "android"],
   "ios": {
+    "podspecPath": "BitcoinerlabBitBoxReactNative.podspec",
+    "swiftModuleName": "BitcoinerlabBitBoxReactNative",
     "modules": ["BitcoinerlabBitBoxModule"]
   },
   "android": {

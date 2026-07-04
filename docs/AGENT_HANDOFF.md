@@ -34,6 +34,16 @@ structurally compatible.
 - `app.plugin.js` adds `NSBluetoothAlwaysUsageDescription` for iOS BLE. It does
   not add iOS background modes or Android permissions yet.
 - Expo Modules autolinking is declared in `expo-module.config.json`.
+- `expo-module.config.json` must keep iOS `podspecPath` and `swiftModuleName`
+  explicit because the podspec lives at the package root. Without those fields,
+  CocoaPods can still link the pod through React Native autolinking while Expo
+  Modules omits `BitcoinerlabBitBoxModule` from `ExpoModulesProvider.swift`,
+  causing `requireNativeModule('BitcoinerlabBitBox')` to fail at runtime.
+- `BitcoinerlabBitBoxReactNative.podspec` intentionally limits source files to
+  `ios/*.swift` and adds framework search paths for the vendored gomobile
+  `Bitboxnative.xcframework`. Avoid broad `ios/**/*` source globs plus
+  `exclude_files = 'ios/Frameworks/**'`; that combination caused the Swift pod
+  target to miss the vendored framework during smoke testing.
 - Bare React Native apps are acceptable hosts if they install/configure Expo
   Modules native infrastructure. A separate plain React Native
   TurboModule/codegen implementation does not exist yet.
@@ -43,6 +53,10 @@ structurally compatible.
 - `src/types.ts` intentionally owns the native BitBox client contract. Do not
   import types from `@bitcoinerlab/descriptors` just for convenience; that would
   couple this package to descriptors and recreate dependency issues.
+- A local Expo dev-client smoke app validated iOS BitBox Nova BLE
+  `connect`, `version`, and `rootFingerprint` on physical hardware. Pairing UX
+  remains rough because persisted Noise pairing/config storage is not designed
+  yet.
 
 ## Non-Goals
 
@@ -252,10 +266,10 @@ Suggested constraints:
 
 ## Expo Config Plugin Plan
 
-`app.plugin.js` currently returns config unchanged. Once real native transport
-code exists, it should add:
+`app.plugin.js` currently adds `NSBluetoothAlwaysUsageDescription` for iOS BLE.
+As native transport support grows, it should add only the additional native
+configuration that is actually required:
 
-- iOS Bluetooth usage description.
 - iOS background mode only if the native implementation truly needs it.
 - Android USB host feature.
 - Android BitBox USB intent filter and device filter XML.
@@ -295,11 +309,10 @@ parsing in native code unless absolutely necessary.
 
 ## Immediate Next Steps
 
-1. Validate iOS BitBox Nova BLE `connect`, `version`, and `rootFingerprint` on
-   physical hardware.
+1. Improve iOS BitBox Nova BLE pairing UX and add persisted Noise pairing/config
+   storage.
 2. Wire iOS Swift serialization for BTC xpub/address/register/signPSBT methods
    into the existing Go wrapper.
-3. Add persisted Noise pairing config instead of the current in-memory Go config.
-4. Wire Android USB for classic BitBox02.
-5. Validate with descriptors' `connectors.fromClient(...)` once BTC methods are
+3. Wire Android USB for classic BitBox02.
+4. Validate with descriptors' `connectors.fromClient(...)` once BTC methods are
    wired.

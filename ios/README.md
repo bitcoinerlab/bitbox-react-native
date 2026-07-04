@@ -11,7 +11,17 @@ Current status:
   wrapper.
 - The BTC xpub/address/register/signing methods still throw not-implemented
   errors until Swift serialization into the Go wrapper is added.
-- Real behavior still needs validation on physical BitBox Nova hardware.
+- A local physical-device smoke test connected to a BitBox Nova over BLE and
+  printed the root fingerprint. Pairing UX is still rough and persisted pairing
+  storage is not implemented yet.
+
+Packaging notes:
+
+- Keep the package's Expo module config explicit about the root podspec path and
+  Swift module name so `ExpoModulesProvider.swift` registers
+  `BitcoinerlabBitBoxModule`.
+- Keep the podspec's vendored `Bitboxnative.xcframework` visible to the Swift
+  pod target; the Swift sources import `Bitboxnative` directly.
 
 The official BitBoxApp implementation used as the transport reference is:
 
