@@ -64,8 +64,8 @@ require github.com/BitBoxSwiss/bitbox02-api-go v0.0.0-20260701210453-54ce69d38ae
 ```
 
 This pin was verified with `go mod tidy`, `go test ./...`, and the gomobile
-build script's `iossimulator` and `ios,iossimulator` targets. The initial iOS
-gomobile artifact is committed at `ios/Frameworks/Bitboxnative.xcframework`.
+build script's `iossimulator` and `ios,iossimulator` targets. The iOS gomobile
+artifact is committed at `ios/Frameworks/Bitboxnative.xcframework`.
 
 Expected direct imports for the first wrapper:
 
@@ -196,13 +196,14 @@ Bluetooth pairing/bonding alone.
 
 ## Open Implementation Risks
 
-- A reproducible gomobile build script exists. The initial generated iOS
-  artifact is committed at `ios/Frameworks/Bitboxnative.xcframework`; Android
-  artifact paths are still pending.
+- A reproducible gomobile build script exists. The generated iOS artifact is
+  committed at `ios/Frameworks/Bitboxnative.xcframework`; Android artifact paths
+  are still pending.
 - The exact JS pairing UX still needs a small design pass for non-BLE or app-side
-  pairing confirmation flows. The initial iOS BLE path auto-confirms app-side
-  pairing after device-side confirmation, matching upstream Bluetooth guidance.
+  pairing confirmation flows. The iOS BLE path auto-confirms app-side pairing
+  after device-side confirmation, matching upstream Bluetooth guidance.
 - The current Go pairing config is in-memory. Persist it only after defining the
   exact non-BLE or explicit pairing UX requirement.
-- Real behavior must be validated on physical BitBox Nova BLE and BitBox02 USB
-  devices.
+- iOS BLE `connect`, `version`, `rootFingerprint`, and non-displaying `btcXpub`
+  are validated on physical BitBox Nova hardware. Remaining iOS BTC methods,
+  Android BLE, and Android USB still need real-device validation.

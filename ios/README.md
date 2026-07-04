@@ -10,8 +10,9 @@ Current status:
 - `connect`, `disconnect`, `version`, `rootFingerprint`, `btcXpub`,
   `btcAddress`, `btcRegisterScriptConfig`, `btcIsScriptConfigRegistered`, and
   `btcSignPSBT` call the gomobile Go wrapper.
-- BTC method Swift serialization is compile-checked in the smoke app but still
-  needs physical-device validation.
+- `btcXpub` has been smoke-tested on physical hardware without device display.
+- `btcAddress`, `btcRegisterScriptConfig`, `btcIsScriptConfigRegistered`, and
+  `btcSignPSBT` are compile-checked but still need physical-device validation.
 - A local physical-device smoke test connected to a BitBox Nova over BLE and
   printed the root fingerprint. The tested BLE reconnect path relies on iOS
   Bluetooth pairing/bonding plus upstream optional Noise pairing confirmation;

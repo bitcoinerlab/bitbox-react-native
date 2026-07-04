@@ -17,8 +17,9 @@ structurally compatible.
   `disconnect`, `version`, and `rootFingerprint` through the Go protocol layer.
 - iOS BTC methods serialize Swift/JS parameters into the Go wrapper for
   `btcXpub`, `btcAddress`, `btcRegisterScriptConfig`,
-  `btcIsScriptConfigRegistered`, and `btcSignPSBT`. They compile in the smoke
-  app but still need physical BitBox method validation.
+  `btcIsScriptConfigRegistered`, and `btcSignPSBT`. Non-displaying `btcXpub` has
+  been validated on physical iPhone plus BitBox Nova hardware. The remaining BTC
+  methods are compile-checked but still need physical BitBox method validation.
 - Android native methods still throw explicit not-implemented errors.
 - Upstream BitBox API survey is documented in
   `docs/UPSTREAM_BITBOX_API_SURVEY.md`.
@@ -56,13 +57,16 @@ structurally compatible.
   import types from `@bitcoinerlab/descriptors` just for convenience; that would
   couple this package to descriptors and recreate dependency issues.
 - A local Expo dev-client smoke app validated iOS BitBox Nova BLE
-  `connect`, `version`, and `rootFingerprint` on physical hardware. Pairing UX
-  is currently acceptable for the tested BLE reconnect path because the wrapper
-  uses upstream optional Noise pairing confirmation over paired Bluetooth. A
-  persisted Noise config backend is not designed yet and should be added only
-  for a concrete non-BLE or explicit app-side pairing UX need.
-- The same smoke app compile-checked the iOS BTC method wiring. The most recent
-  build succeeded, but launch failed because the physical iPhone was locked.
+  `connect`, `version`, `rootFingerprint`, and non-displaying `btcXpub` on
+  physical hardware. Pairing UX is currently acceptable for the tested BLE
+  reconnect path because the wrapper uses upstream optional Noise pairing
+  confirmation over paired Bluetooth. A persisted Noise config backend is not
+  designed yet and should be added only for a concrete non-BLE or explicit
+  app-side pairing UX need.
+- The separate local smoke app has been extended with buttons for read-only
+  address derivation, device-displayed address derivation, multisig
+  registration/isRegistered, pasted-PSBT signing, and shareable logs. Those new
+  smoke paths still need physical-device runs.
 
 ## Non-Goals
 
@@ -270,7 +274,7 @@ Suggested responsibilities:
 - Pair/unlock device if required.
 - Return firmware version.
 - Return root fingerprint as lowercase hex string.
-- Implement BTC xpub/address/register/isRegistered/signPSBT wrappers.
+- Maintain BTC xpub/address/register/isRegistered/signPSBT wrappers.
 - Convert JS-native serialized `scriptConfig` structures into Go structures.
 - Keep PSBT input/output as base64 strings to match this package's BitBox client
   contract.
@@ -287,8 +291,8 @@ Pairing/config note:
 - `NewClientWithMobileTransport(..., isBluetooth: true)` passes
   `firmware.WithOptionalNoisePairingConfirmation(true)`, matching upstream's
   guidance for Noise over paired Bluetooth.
-- The current `newMemoryConfig()` is acceptable for the initial iOS BLE path that
-  was tested on physical hardware. It intentionally does not create package-owned
+- The current `newMemoryConfig()` is acceptable for the iOS BLE path tested on
+  physical hardware. It intentionally does not create package-owned
   storage without a defined storage key, reset UX, and transport requirement.
 - Add a persisted `firmware.ConfigInterface` only when implementing USB/app-side
   pairing confirmation or after a BLE physical-device case proves it is needed.
@@ -314,7 +318,7 @@ Add tests in phases:
 
 - TypeScript compile checks for the public API.
 - Native unit tests for serialization and error handling where practical.
-- Manual iOS BitBox Nova BLE smoke test on real hardware.
+- Manual iOS BitBox Nova BLE smoke test on real hardware for each native method.
 - Manual Android USB smoke test on real hardware.
 - Manual Android BitBox Nova BLE smoke test on real hardware.
 - Manual descriptors integration test that uses `connectors.fromClient(...)` to
@@ -339,7 +343,9 @@ parsing in native code unless absolutely necessary.
 
 ## Immediate Next Steps
 
-1. Validate iOS BTC methods on physical BitBox Nova hardware.
+1. Validate remaining iOS BTC methods on physical BitBox Nova hardware:
+   `btcAddress`, `btcRegisterScriptConfig`, `btcIsScriptConfigRegistered`, and
+   `btcSignPSBT`.
 2. Validate iOS with descriptors' `connectors.fromClient(...)`.
 3. Design persisted Noise pairing/config storage only when a non-BLE or explicit
    app-side pairing-confirmation requirement is concrete.

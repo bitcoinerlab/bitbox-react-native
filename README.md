@@ -3,7 +3,7 @@
 React Native native BitBox client provider for mobile Bitcoin apps.
 
 This package is an early mobile BitBox implementation. It exposes a small
-TypeScript API for a native BitBox client and has initial iOS BitBox Nova BLE
+TypeScript API for a native BitBox client and has working iOS BitBox Nova BLE
 transport wiring, but it is not production-ready yet.
 
 ## Status
@@ -11,17 +11,18 @@ transport wiring, but it is not production-ready yet.
 - JavaScript API: scaffolded.
 - Expo Modules / React Native New Architecture-compatible native package
   foundation: scaffolded.
-- iOS BitBox Nova BLE `connect`, `disconnect`, `version`, and
-  `rootFingerprint`: wired through CoreBluetooth, gomobile, and
+- iOS BitBox Nova BLE `connect`, `disconnect`, `version`, `rootFingerprint`,
+  and non-displaying `btcXpub`: wired through CoreBluetooth, gomobile, and
   `bitbox02-api-go`; smoke-tested on physical hardware.
-- iOS Bitcoin methods beyond `rootFingerprint`: wired through the gomobile Go
-  wrapper and compile-checked; still need physical hardware validation.
+- iOS `btcAddress`, `btcRegisterScriptConfig`, `btcIsScriptConfigRegistered`,
+  and `btcSignPSBT`: wired through the gomobile Go wrapper and compile-checked;
+  still need physical hardware validation.
 - Android BitBox02 USB transport/protocol: not implemented.
 - Android BitBox Nova BLE transport/protocol: not implemented.
 - Expo Go support: not possible, because custom native code is required.
 
-Do not treat this package as production-ready BitBox support until the native
-paths have been validated on real devices.
+Do not treat this package as production-ready BitBox support until every native
+method and target transport has been validated on real devices.
 
 ## Why This Package Exists
 
@@ -125,8 +126,10 @@ try {
 This repository includes an Expo Modules API native module for iOS and Android.
 The iOS module has CoreBluetooth transport wiring for BitBox Nova and uses the
 vendored gomobile framework at `ios/Frameworks/Bitboxnative.xcframework` for the
-BitBox protocol. Android remains placeholder-only. The JavaScript resolver
-intentionally does not fall back to legacy `react-native` `NativeModules`.
+BitBox protocol. A local dev-client smoke app has validated connect/version/root
+fingerprint and non-displaying xpub retrieval on a physical iPhone plus BitBox
+Nova. Android remains placeholder-only. The JavaScript resolver intentionally
+does not fall back to legacy `react-native` `NativeModules`.
 
 ## Development
 
