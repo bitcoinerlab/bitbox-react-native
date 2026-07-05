@@ -10,9 +10,9 @@ Current status:
 - `connect`, `disconnect`, `version`, `rootFingerprint`, `btcXpub`,
   `btcAddress`, `btcRegisterScriptConfig`, `btcIsScriptConfigRegistered`, and
   `btcSignPSBT` call the gomobile Go wrapper.
-- `btcXpub` has been smoke-tested on physical hardware without device display.
-- `btcAddress`, `btcRegisterScriptConfig`, `btcIsScriptConfigRegistered`, and
-  `btcSignPSBT` are compile-checked but still need physical-device validation.
+- The current native method set has been smoke-tested on physical hardware,
+  including non-displaying xpub/address reads, displayed address verification,
+  multisig registration/isRegistered checks, and fake-PSBT signing.
 - A local physical-device smoke test connected to a BitBox Nova over BLE and
   printed the root fingerprint. The tested BLE reconnect path relies on iOS
   Bluetooth pairing/bonding plus upstream optional Noise pairing confirmation;

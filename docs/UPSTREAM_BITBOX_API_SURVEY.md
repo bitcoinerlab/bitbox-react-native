@@ -204,6 +204,7 @@ Bluetooth pairing/bonding alone.
   after device-side confirmation, matching upstream Bluetooth guidance.
 - The current Go pairing config is in-memory. Persist it only after defining the
   exact non-BLE or explicit pairing UX requirement.
-- iOS BLE `connect`, `version`, `rootFingerprint`, and non-displaying `btcXpub`
-  are validated on physical BitBox Nova hardware. Remaining iOS BTC methods,
-  Android BLE, and Android USB still need real-device validation.
+- iOS BLE `connect`, `version`, `rootFingerprint`, `btcXpub`, `btcAddress`,
+  `btcRegisterScriptConfig`, `btcIsScriptConfigRegistered`, and `btcSignPSBT`
+  are validated on physical BitBox Nova hardware. Android BLE and Android USB
+  still need real-device validation.

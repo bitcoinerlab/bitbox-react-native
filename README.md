@@ -12,17 +12,16 @@ transport wiring, but it is not production-ready yet.
 - Expo Modules / React Native New Architecture-compatible native package
   foundation: scaffolded.
 - iOS BitBox Nova BLE `connect`, `disconnect`, `version`, `rootFingerprint`,
-  and non-displaying `btcXpub`: wired through CoreBluetooth, gomobile, and
-  `bitbox02-api-go`; smoke-tested on physical hardware.
-- iOS `btcAddress`, `btcRegisterScriptConfig`, `btcIsScriptConfigRegistered`,
-  and `btcSignPSBT`: wired through the gomobile Go wrapper and compile-checked;
-  still need physical hardware validation.
+  `btcXpub`, `btcAddress`, `btcRegisterScriptConfig`,
+  `btcIsScriptConfigRegistered`, and `btcSignPSBT`: wired through
+  CoreBluetooth, gomobile, and `bitbox02-api-go`; smoke-tested on physical
+  hardware for the current native method set.
 - Android BitBox02 USB transport/protocol: not implemented.
 - Android BitBox Nova BLE transport/protocol: not implemented.
 - Expo Go support: not possible, because custom native code is required.
 
-Do not treat this package as production-ready BitBox support until every native
-method and target transport has been validated on real devices.
+Do not treat this package as production-ready BitBox support until descriptor
+integration and target transports have been validated on real devices.
 
 ## Why This Package Exists
 
@@ -126,10 +125,11 @@ try {
 This repository includes an Expo Modules API native module for iOS and Android.
 The iOS module has CoreBluetooth transport wiring for BitBox Nova and uses the
 vendored gomobile framework at `ios/Frameworks/Bitboxnative.xcframework` for the
-BitBox protocol. A local dev-client smoke app has validated connect/version/root
-fingerprint and non-displaying xpub retrieval on a physical iPhone plus BitBox
-Nova. Android remains placeholder-only. The JavaScript resolver intentionally
-does not fall back to legacy `react-native` `NativeModules`.
+BitBox protocol. A local dev-client smoke app has validated the current iOS
+native method set on a physical iPhone plus BitBox Nova, including address
+display, multisig registration checks, and PSBT signing. Android remains
+placeholder-only. The JavaScript resolver intentionally does not fall back to
+legacy `react-native` `NativeModules`.
 
 ## Development
 
