@@ -45,7 +45,7 @@ structurally compatible.
   `ios/*.swift` and adds framework search paths for the vendored gomobile
   `Bitboxnative.xcframework`. Avoid broad `ios/**/*` source globs plus
   `exclude_files = 'ios/Frameworks/**'`; that combination caused the Swift pod
-  target to miss the vendored framework during smoke testing.
+  target to miss the vendored framework during integration testing.
 - Bare React Native apps are acceptable hosts if they install/configure Expo
   Modules native infrastructure. A separate plain React Native
   TurboModule/codegen implementation does not exist yet.
@@ -55,7 +55,8 @@ structurally compatible.
 - `src/types.ts` intentionally owns the native BitBox client contract. Do not
   import types from `@bitcoinerlab/descriptors` just for convenience; that would
   couple this package to descriptors and recreate dependency issues.
-- A local Expo dev-client smoke app validated iOS BitBox Nova BLE
+- The separate `bitbox-rn-integration` Expo dev-client app validated iOS BitBox
+  Nova BLE
   `connect`, `version`, `rootFingerprint`, `btcXpub`, `btcAddress`,
   `btcRegisterScriptConfig`, `btcIsScriptConfigRegistered`, and `btcSignPSBT` on
   physical hardware. Pairing UX is currently acceptable for the tested BLE
@@ -63,7 +64,7 @@ structurally compatible.
   confirmation over paired Bluetooth. A persisted Noise config backend is not
   designed yet and should be added only for a concrete non-BLE or explicit
   app-side pairing UX need.
-- The separate local smoke app has buttons for read-only address derivation,
+- The separate integration app has buttons for read-only address derivation,
   device-displayed address derivation, multisig registration/isRegistered,
   fake-PSBT generation/signing, and shareable logs.
 
@@ -317,9 +318,10 @@ Add tests in phases:
 
 - TypeScript compile checks for the public API.
 - Native unit tests for serialization and error handling where practical.
-- Manual iOS BitBox Nova BLE smoke test on real hardware for each native method.
-- Manual Android USB smoke test on real hardware.
-- Manual Android BitBox Nova BLE smoke test on real hardware.
+- Manual iOS BitBox Nova BLE integration test on real hardware for each native
+  method.
+- Manual Android USB integration test on real hardware.
+- Manual Android BitBox Nova BLE integration test on real hardware.
 - Manual descriptors integration test that uses `connectors.fromClient(...)` to
   derive xpubs, register/display a wallet, and sign a PSBT.
 
