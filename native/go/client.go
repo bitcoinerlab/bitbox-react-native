@@ -2,6 +2,7 @@ package bitboxnative
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"sync"
 
@@ -15,6 +16,12 @@ var errTransportNotConnected = errors.New("BitBox transport is not connected")
 type Client struct {
 	mu     sync.Mutex
 	device *firmware.Device
+}
+
+type btcSignMessageResultJSON struct {
+	Sig           []int `json:"sig"`
+	RecID         int   `json:"recid"`
+	ElectrumSig65 []int `json:"electrumSig65"`
 }
 
 // NewClient creates a disconnected client wrapper. Platform native code should
@@ -176,6 +183,43 @@ func (client *Client) BTCSignPSBT(apiNetwork string, psbtBase64 string, forceScr
 		return "", err
 	}
 	return encodePSBTBase64(packet)
+}
+
+// BTCSignMessage signs a Bitcoin message through upstream bitbox02-api-go.
+func (client *Client) BTCSignMessage(apiNetwork string, scriptConfigWithKeypathJSON string, message []byte) (string, error) {
+	device, err := client.deviceOrError()
+	if err != nil {
+		return "", err
+	}
+	coin, err := btcCoin(apiNetwork)
+	if err != nil {
+		return "", err
+	}
+	scriptConfigWithKeypath, err := parseScriptConfigWithKeypathJSON(scriptConfigWithKeypathJSON)
+	if err != nil {
+		return "", err
+	}
+	result, err := device.BTCSignMessage(coin, scriptConfigWithKeypath, message)
+	if err != nil {
+		return "", err
+	}
+	encoded, err := json.Marshal(btcSignMessageResultJSON{
+		Sig:           bytesToInts(result.Signature),
+		RecID:         int(result.RecID),
+		ElectrumSig65: bytesToInts(result.ElectrumSig65),
+	})
+	if err != nil {
+		return "", err
+	}
+	return string(encoded), nil
+}
+
+func bytesToInts(value []byte) []int {
+	ints := make([]int, len(value))
+	for index, byteValue := range value {
+		ints[index] = int(byteValue)
+	}
+	return ints
 }
 
 func btcCoin(apiNetwork string) (messages.BTCCoin, error) {

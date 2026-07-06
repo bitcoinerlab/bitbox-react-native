@@ -13,9 +13,10 @@ transport wiring, but it is not production-ready yet.
   foundation: scaffolded.
 - iOS BitBox Nova BLE `connect`, `disconnect`, `version`, `rootFingerprint`,
   `btcXpub`, `btcAddress`, `btcRegisterScriptConfig`,
-  `btcIsScriptConfigRegistered`, and `btcSignPSBT`: wired through
-  CoreBluetooth, gomobile, and `bitbox02-api-go`; integration-tested on physical
-  hardware for the current native method set.
+  `btcIsScriptConfigRegistered`, `btcSignPSBT`, and `btcSignMessage`: wired
+  through CoreBluetooth, gomobile, and `bitbox02-api-go`. The current native
+  method set except `btcSignMessage` has been integration-tested on physical
+  hardware; message signing still needs physical validation.
 - Android BitBox02 USB transport/protocol: not implemented.
 - Android BitBox Nova BLE transport/protocol: not implemented.
 - Expo Go support: not possible, because custom native code is required.
@@ -90,6 +91,7 @@ Bitcoin-only, raw `bitbox-api`-compatible provider-client surface:
 - `btcRegisterScriptConfig(apiNetwork, scriptConfig, keypathAccount, xpubType, name?)`
 - `btcIsScriptConfigRegistered(...)`
 - `btcSignPSBT(...)`
+- `btcSignMessage(...)`
 
 ## Optional Descriptors Integration
 
@@ -106,14 +108,14 @@ import { connectors } from '@bitcoinerlab/descriptors/bitbox';
 
 const client = await connectBitBoxNovaBle();
 
-const manager = connectors.fromClient({
+const session = connectors.fromClient({
   client,
   network,
   Output
 });
 
 try {
-  // Use manager with keyExpression/registerWallet/signers from
+  // Use session with keyExpression/registerWallet/signers from
   // @bitcoinerlab/descriptors/bitbox.
 } finally {
   await client.close();
@@ -128,8 +130,9 @@ vendored gomobile framework at `ios/Frameworks/Bitboxnative.xcframework` for the
 BitBox protocol. The separate `bitbox-rn-integration` dev-client app has
 validated the current iOS native method set on a physical iPhone plus BitBox
 Nova, including address display, multisig registration checks, and PSBT signing.
-Android remains placeholder-only. The JavaScript resolver intentionally does not
-fall back to legacy `react-native` `NativeModules`.
+`btcSignMessage` is wired but still needs physical-device validation. Android
+remains placeholder-only. The JavaScript resolver intentionally does not fall
+back to legacy `react-native` `NativeModules`.
 
 ## Development
 

@@ -17,8 +17,10 @@ structurally compatible.
   `disconnect`, `version`, and `rootFingerprint` through the Go protocol layer.
 - iOS BTC methods serialize Swift/JS parameters into the Go wrapper for
   `btcXpub`, `btcAddress`, `btcRegisterScriptConfig`,
-  `btcIsScriptConfigRegistered`, and `btcSignPSBT`. The current iOS native
-  method set has been validated on physical iPhone plus BitBox Nova hardware.
+  `btcIsScriptConfigRegistered`, `btcSignPSBT`, and `btcSignMessage`. The
+  pre-message-signing iOS native method set has been validated on physical
+  iPhone plus BitBox Nova hardware; `btcSignMessage` still needs physical
+  validation.
 - Android native methods still throw explicit not-implemented errors.
 - Upstream BitBox API survey is documented in
   `docs/UPSTREAM_BITBOX_API_SURVEY.md`.
@@ -80,7 +82,7 @@ structurally compatible.
 - Do not make this package depend on `@bitcoinerlab/descriptors` for types,
   tests, or examples that belong in an optional integration package/app.
 - Do not expose a broad vendor API if the mobile Bitcoin client surface only
-  needs the seven methods listed below.
+  needs the methods listed below.
 
 ## Public Contract
 
@@ -111,6 +113,7 @@ exposed to application code removes the session argument and provides this raw
 - `btcRegisterScriptConfig(sessionId, apiNetwork, scriptConfig, keypathAccount, xpubType, name?): Promise<void>`
 - `btcIsScriptConfigRegistered(sessionId, apiNetwork, scriptConfig, keypathAccount?): Promise<boolean>`
 - `btcSignPSBT(sessionId, apiNetwork, psbt, forceScriptConfig, formatUnit): Promise<string>`
+- `btcSignMessage(sessionId, apiNetwork, scriptConfigWithKeypath, message): Promise<BitBoxMessageSignature>`
 
 `apiNetwork` is this package's Bitcoin-only BitBox network type:
 
@@ -139,13 +142,17 @@ import {
 } from '@bitcoinerlab/descriptors/bitbox';
 
 const client = await connectBitBoxNovaBle();
-const manager = connectors.fromClient({
+const session = connectors.fromClient({
   client,
   network,
   Output
 });
 
-const key = await keyExpression({ manager, keyPath: "m/84'/0'/0'" });
+const key = await keyExpression({
+  session,
+  originPath: "/84'/0'/0'",
+  keyPath: '/0/*'
+});
 // Build/register/sign with @bitcoinerlab/descriptors/bitbox helpers.
 
 await client.close();

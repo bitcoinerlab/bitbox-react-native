@@ -71,5 +71,12 @@ class BitcoinerlabBitBoxModule : Module() {
       formatUnit: String ->
       throw BitcoinerlabBitBoxNotImplementedException("btcSignPSBT")
     }
+
+    AsyncFunction("btcSignMessage") { sessionId: String,
+      apiNetwork: String,
+      scriptConfigWithKeypath: Map<String, Any?>,
+      message: List<Int> ->
+      throw BitcoinerlabBitBoxNotImplementedException("btcSignMessage")
+    }
   }
 }

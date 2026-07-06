@@ -79,6 +79,28 @@ func TestPSBTSignOptions(t *testing.T) {
 	}
 }
 
+func TestParseScriptConfigWithKeypathJSON(t *testing.T) {
+	config, err := parseScriptConfigWithKeypathJSON(`{"scriptConfig":{"simpleType":"p2wpkh"},"keypath":"m/84'/0'/0'/0/7"}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if config.GetScriptConfig().GetSimpleType() != messages.BTCScriptConfig_P2WPKH {
+		t.Fatal("unexpected script config")
+	}
+	want := []uint32{84 + hardenedOffset, 0 + hardenedOffset, 0 + hardenedOffset, 0, 7}
+	if !reflect.DeepEqual(config.GetKeypath(), want) {
+		t.Fatalf("got %v, want %v", config.GetKeypath(), want)
+	}
+}
+
+func TestBytesToInts(t *testing.T) {
+	got := bytesToInts([]byte{0, 1, 255})
+	want := []int{0, 1, 255}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+}
+
 func TestBTCXPubType(t *testing.T) {
 	if got, err := btcXpubType("xpub"); err != nil || got != messages.BTCPubRequest_XPUB {
 		t.Fatalf("got %v, want %v", got, messages.BTCPubRequest_XPUB)

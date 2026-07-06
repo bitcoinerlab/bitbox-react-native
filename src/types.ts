@@ -50,6 +50,18 @@ export type BitBoxScriptConfigWithKeypath = {
   keypath: BitBoxKeypath;
 };
 
+export type BitBoxMessageSignature = {
+  sig: Uint8Array;
+  recid: bigint;
+  electrumSig65: Uint8Array;
+};
+
+export type NativeBitBoxMessageSignature = {
+  sig: number[] | Uint8Array;
+  recid: number | string | bigint;
+  electrumSig65: number[] | Uint8Array;
+};
+
 export type BitBoxClient = {
   version(): string | Promise<string>;
   rootFingerprint(): string | Promise<string>;
@@ -83,6 +95,11 @@ export type BitBoxClient = {
     forceScriptConfig: BitBoxScriptConfigWithKeypath | undefined,
     formatUnit: BitBoxFormatUnit
   ): Promise<string>;
+  btcSignMessage?(
+    apiNetwork: BitBoxApiNetwork,
+    scriptConfigWithKeypath: BitBoxScriptConfigWithKeypath,
+    message: Uint8Array
+  ): Promise<BitBoxMessageSignature>;
 };
 
 export type BitBoxReactNativeTransport = 'auto' | 'ble' | 'android-usb';
@@ -159,6 +176,12 @@ export type BitBoxNativeModule = {
     forceScriptConfig: BitBoxScriptConfigWithKeypath | undefined,
     formatUnit: BitBoxFormatUnit
   ): Promise<string>;
+  btcSignMessage?(
+    sessionId: string,
+    apiNetwork: BitBoxApiNetwork,
+    scriptConfigWithKeypath: BitBoxScriptConfigWithKeypath,
+    message: number[]
+  ): Promise<NativeBitBoxMessageSignature>;
 };
 
 export type ConnectedBitBoxClient = BitBoxClient & {

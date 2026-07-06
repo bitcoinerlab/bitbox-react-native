@@ -53,6 +53,10 @@ string or the short BitBox Nova BLE product string.
  */
 - (BOOL)btcRegisterScriptConfig:(NSString* _Nullable)apiNetwork scriptConfigJSON:(NSString* _Nullable)scriptConfigJSON keypathAccount:(NSString* _Nullable)keypathAccount xpubType:(NSString* _Nullable)xpubType name:(NSString* _Nullable)name error:(NSError* _Nullable* _Nullable)error;
 /**
+ * BTCSignMessage signs a Bitcoin message through upstream bitbox02-api-go.
+ */
+- (NSString* _Nonnull)btcSignMessage:(NSString* _Nullable)apiNetwork scriptConfigWithKeypathJSON:(NSString* _Nullable)scriptConfigWithKeypathJSON message:(NSData* _Nullable)message error:(NSError* _Nullable* _Nullable)error;
+/**
  * BTCSignPSBT parses, signs, and serializes a base64 PSBT through upstream bitbox02-api-go.
  */
 - (NSString* _Nonnull)btcSignPSBT:(NSString* _Nullable)apiNetwork psbtBase64:(NSString* _Nullable)psbtBase64 forceScriptConfigJSON:(NSString* _Nullable)forceScriptConfigJSON formatUnit:(NSString* _Nullable)formatUnit error:(NSError* _Nullable* _Nullable)error;

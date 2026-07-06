@@ -11,6 +11,7 @@ export type {
   BitBoxConnectParams,
   BitBoxFormatUnit,
   BitBoxKeypath,
+  BitBoxMessageSignature,
   BitBoxNativeModule,
   BitBoxReactNativeSession,
   BitBoxReactNativeTransport,
@@ -19,5 +20,6 @@ export type {
   BitBoxScriptConfigWithKeypath,
   BitBoxXPubType,
   ConnectedBitBoxClient,
-  NativeBitBoxConnectParams
+  NativeBitBoxConnectParams,
+  NativeBitBoxMessageSignature
 } from './types';

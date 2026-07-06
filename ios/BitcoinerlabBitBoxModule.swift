@@ -172,6 +172,15 @@ private func bitboxKeypathComponentString(_ component: UInt64) throws -> String 
   return String(component)
 }
 
+private func bitboxBytes(_ bytes: [Int]) throws -> [UInt8] {
+  try bytes.map { byte in
+    guard byte >= 0, byte <= 255 else {
+      throw BitBoxNativeError(message: "BitBox byte arrays must contain values from 0 to 255")
+    }
+    return UInt8(byte)
+  }
+}
+
 private func bitboxScriptConfigJSONString(_ scriptConfig: [String: Any]) throws -> String {
   try bitboxJSONString(bitboxNormalizeScriptConfig(scriptConfig))
 }
@@ -240,6 +249,14 @@ private func bitboxJSONString(_ value: Any) throws -> String {
     throw BitBoxNativeError(message: "BitBox JSON serialization failed")
   }
   return string
+}
+
+private func bitboxJSONObject(_ string: String) throws -> [String: Any] {
+  let data = Data(string.utf8)
+  guard let object = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
+    throw BitBoxNativeError(message: "BitBox JSON result was not an object")
+  }
+  return object
 }
 
 public class BitcoinerlabBitBoxModule: Module {
@@ -400,6 +417,26 @@ public class BitcoinerlabBitBoxModule: Module {
           error: error
         )
       }
+    }
+
+    AsyncFunction("btcSignMessage") { (
+      _ sessionId: String,
+      _ apiNetwork: String,
+      _ scriptConfigWithKeypath: [String: Any],
+      _ message: [Int]
+    ) throws -> [String: Any] in
+      let client = try self.sessions.session(sessionId).client
+      let scriptConfigWithKeypathJSON = try bitboxScriptConfigWithKeypathJSONString(scriptConfigWithKeypath)
+      let messageData = Data(try bitboxBytes(message))
+      let resultJSON = try bitboxCallString { error in
+        client.btcSignMessage(
+          apiNetwork,
+          scriptConfigWithKeypathJSON: scriptConfigWithKeypathJSON,
+          message: messageData,
+          error: error
+        )
+      }
+      return try bitboxJSONObject(resultJSON)
     }
   }
 }

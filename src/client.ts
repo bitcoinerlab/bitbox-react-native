@@ -4,6 +4,7 @@ import type {
   BitBoxConnectParams,
   BitBoxFormatUnit,
   BitBoxKeypath,
+  BitBoxMessageSignature,
   BitBoxNativeModule,
   BitBoxReactNativeSession,
   BitBoxRegisterXPubType,
@@ -13,6 +14,14 @@ import type {
   ConnectedBitBoxClient,
   NativeBitBoxConnectParams
 } from './types';
+
+function uint8Array(value: number[] | Uint8Array): Uint8Array {
+  return value instanceof Uint8Array ? value : Uint8Array.from(value);
+}
+
+function bigintValue(value: number | string | bigint): bigint {
+  return typeof value === 'bigint' ? value : BigInt(value);
+}
 
 function nativeConnectParams({
   onPairingCode,
@@ -123,6 +132,27 @@ export class ReactNativeBitBoxClient implements ConnectedBitBoxClient {
       forceScriptConfig,
       formatUnit
     );
+  }
+
+  async btcSignMessage(
+    apiNetwork: BitBoxApiNetwork,
+    scriptConfigWithKeypath: BitBoxScriptConfigWithKeypath,
+    message: Uint8Array
+  ): Promise<BitBoxMessageSignature> {
+    if (!this.nativeModule.btcSignMessage) {
+      throw new Error('BitBox native module does not support btcSignMessage');
+    }
+    const result = await this.nativeModule.btcSignMessage(
+      this.session.id,
+      apiNetwork,
+      scriptConfigWithKeypath,
+      Array.from(message)
+    );
+    return {
+      sig: uint8Array(result.sig),
+      recid: bigintValue(result.recid),
+      electrumSig65: uint8Array(result.electrumSig65)
+    };
   }
 }
 

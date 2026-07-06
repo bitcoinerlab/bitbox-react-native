@@ -117,6 +117,7 @@ Notes:
 | `btcRegisterScriptConfig(...)`     | `device.BTCRegisterScriptConfig(...)`                                                         |
 | `btcIsScriptConfigRegistered(...)` | `device.BTCIsScriptConfigRegistered(...)`                                                     |
 | `btcSignPSBT(...)`                 | Parse base64 PSBT, call `device.BTCSignPSBT(...)`, serialize base64 PSBT                      |
+| `btcSignMessage(...)`              | `device.BTCSignMessage(...)`, return raw signature fields and Electrum 65-byte signature      |
 
 The JS contract mirrors the raw `bitbox-api` provider-client boundary for
 Bitcoin methods. Descriptors computes and passes the xpub arguments internally
@@ -163,6 +164,7 @@ The wrapper should own only small conversion helpers:
 - Convert xpub strings to upstream `messages.XPub` through `firmware.NewXPub`.
 - Convert policy keys to `messages.KeyOriginInfo`.
 - Convert PSBT base64 to/from `*psbt.Packet`.
+- Convert message-signing results to `sig`, `recid`, and `electrumSig65`.
 
 ## Pairing Boundary
 
@@ -206,5 +208,5 @@ Bluetooth pairing/bonding alone.
   exact non-BLE or explicit pairing UX requirement.
 - iOS BLE `connect`, `version`, `rootFingerprint`, `btcXpub`, `btcAddress`,
   `btcRegisterScriptConfig`, `btcIsScriptConfigRegistered`, and `btcSignPSBT`
-  are validated on physical BitBox Nova hardware. Android BLE and Android USB
-  still need real-device validation.
+  are validated on physical BitBox Nova hardware. `btcSignMessage`, Android BLE,
+  and Android USB still need real-device validation.

@@ -269,6 +269,25 @@ func psbtSignOptions(forceScriptConfigJSON string, formatUnitValue string) (*fir
 	return options, nil
 }
 
+func parseScriptConfigWithKeypathJSON(value string) (*messages.BTCScriptConfigWithKeypath, error) {
+	var parsed scriptConfigWithKeypathJSON
+	if err := json.Unmarshal([]byte(value), &parsed); err != nil {
+		return nil, err
+	}
+	scriptConfig, err := scriptConfig(parsed.ScriptConfig)
+	if err != nil {
+		return nil, err
+	}
+	keypath, err := parseKeypath(parsed.Keypath)
+	if err != nil {
+		return nil, err
+	}
+	return &messages.BTCScriptConfigWithKeypath{
+		ScriptConfig: scriptConfig,
+		Keypath:      keypath,
+	}, nil
+}
+
 func parsePSBTBase64(value string) (*psbt.Packet, error) {
 	return psbt.NewFromRawBytes(bytes.NewBufferString(value), true)
 }
