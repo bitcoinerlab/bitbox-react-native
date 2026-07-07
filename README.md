@@ -42,18 +42,101 @@ compatible.
 
 ## Installation
 
+This package contains custom native code. It works in apps that can build and
+load native modules, such as Expo development builds, EAS builds, Expo prebuild
+apps, or bare React Native apps with Expo Modules installed. It does not work in
+Expo Go.
+
+### Expo Development Builds / EAS
+
 ```sh
-npm install @bitcoinerlab/bitbox-react-native
+npx expo install @bitcoinerlab/bitbox-react-native
 ```
 
-This package will require a React Native app that can load custom native code.
-It can be a bare React Native app with Expo Modules installed/configured, or an
-Expo prebuild/dev-client/EAS build. It will not work in Expo Go.
+If you are creating a local development build, install `expo-dev-client` too:
+
+```sh
+npx expo install expo-dev-client
+```
+
+Add this package's config plugin to your Expo app config:
+
+```json
+{
+  "expo": {
+    "plugins": ["@bitcoinerlab/bitbox-react-native"]
+  }
+}
+```
+
+If the same app config also uses `expo-dev-client`, include both plugins:
+
+```json
+{
+  "expo": {
+    "plugins": [
+      "expo-dev-client",
+      "@bitcoinerlab/bitbox-react-native"
+    ]
+  }
+}
+```
+
+Expo autolinking links this native module automatically after installation, but
+Expo does not generally add third-party config plugins to `app.json` for you.
+The plugin is required on iOS because it adds
+`NSBluetoothAlwaysUsageDescription`, which CoreBluetooth needs before the app can
+scan for and connect to a BitBox Nova.
+
+After installing the package or changing the plugin list, rebuild the native app.
+A Metro reload is not enough for native module or `Info.plist` changes.
+
+```sh
+npx expo run:ios --device
+```
+
+Or build with EAS:
+
+```sh
+eas build --profile development --platform ios
+```
+
+Expected iOS prompts during development:
+
+- Local Network: used by the development build to reach the Expo/Metro server.
+- Bluetooth: used by this package to scan for and connect to the BitBox Nova.
+
+### Bare React Native
 
 The native foundation uses Expo Modules API rather than legacy React Native
 `NativeModules` wiring. A bare React Native app does not need to use the Expo
 managed workflow, but it does need the Expo Modules native infrastructure. A
 separate plain React Native TurboModule/codegen implementation is not included.
+
+For an existing bare React Native app, first install and configure Expo Modules:
+
+```sh
+npx install-expo-modules@latest
+```
+
+Then install this package:
+
+```sh
+npm install @bitcoinerlab/bitbox-react-native
+```
+
+For iOS, install pods and rebuild the app:
+
+```sh
+npx pod-install
+```
+
+If your bare app does not use Expo prebuild/config plugins to generate native
+projects, add `NSBluetoothAlwaysUsageDescription` manually to your iOS
+`Info.plist`. The iOS pod currently requires deployment target `15.1` or newer.
+
+Android native BitBox transport methods are placeholders for now and throw
+not-implemented errors.
 
 This package does not depend on `@bitcoinerlab/descriptors`. Its TypeScript
 types intentionally define the BitBox provider-client contract locally so the
@@ -101,6 +184,24 @@ the connected client with `connectors.fromClient(...)`:
 ```sh
 npm install @bitcoinerlab/descriptors
 ```
+
+When using the bitcoinjs-based `@bitcoinerlab/descriptors` preset in React
+Native/Hermes, your app may also need a global `Buffer` polyfill before importing
+the descriptors package:
+
+```sh
+npm install buffer
+```
+
+```ts
+import { Buffer as BufferPolyfill } from 'buffer';
+
+(globalThis as typeof globalThis & { Buffer?: typeof BufferPolyfill }).Buffer ??=
+  BufferPolyfill;
+```
+
+The `Buffer` polyfill is not required by `@bitcoinerlab/bitbox-react-native`
+itself; it is only for app code that chooses the bitcoinjs descriptors preset.
 
 ```ts
 import { connectBitBoxNovaBle } from '@bitcoinerlab/bitbox-react-native';
