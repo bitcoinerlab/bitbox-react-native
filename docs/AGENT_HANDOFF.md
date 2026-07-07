@@ -142,10 +142,12 @@ import {
 } from '@bitcoinerlab/descriptors/bitbox';
 
 const client = await connectBitBoxNovaBle();
+const store = {};
 const session = connectors.fromClient({
   client,
   network,
-  Output
+  Output,
+  store
 });
 
 const key = await keyExpression({
@@ -154,6 +156,7 @@ const key = await keyExpression({
   keyPath: '/0/*'
 });
 // Build/register/sign with @bitcoinerlab/descriptors/bitbox helpers.
+// Persist JSON.stringify(store) or JSON.stringify(session.store), not session.
 
 await client.close();
 ```

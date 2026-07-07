@@ -74,10 +74,7 @@ If the same app config also uses `expo-dev-client`, include both plugins:
 ```json
 {
   "expo": {
-    "plugins": [
-      "expo-dev-client",
-      "@bitcoinerlab/bitbox-react-native"
-    ]
+    "plugins": ["expo-dev-client", "@bitcoinerlab/bitbox-react-native"]
   }
 }
 ```
@@ -196,8 +193,9 @@ npm install buffer
 ```ts
 import { Buffer as BufferPolyfill } from 'buffer';
 
-(globalThis as typeof globalThis & { Buffer?: typeof BufferPolyfill }).Buffer ??=
-  BufferPolyfill;
+(
+  globalThis as typeof globalThis & { Buffer?: typeof BufferPolyfill }
+).Buffer ??= BufferPolyfill;
 ```
 
 The `Buffer` polyfill is not required by `@bitcoinerlab/bitbox-react-native`
@@ -208,16 +206,19 @@ import { connectBitBoxNovaBle } from '@bitcoinerlab/bitbox-react-native';
 import { connectors } from '@bitcoinerlab/descriptors/bitbox';
 
 const client = await connectBitBoxNovaBle();
+const store = {};
 
 const session = connectors.fromClient({
   client,
   network,
-  Output
+  Output,
+  store
 });
 
 try {
-  // Use session with keyExpression/registerWallet/signers from
+  // Use session with keyExpression/registerWalletPolicy/signers from
   // @bitcoinerlab/descriptors/bitbox.
+  // Persist JSON.stringify(store) or JSON.stringify(session.store), not session.
 } finally {
   await client.close();
 }
