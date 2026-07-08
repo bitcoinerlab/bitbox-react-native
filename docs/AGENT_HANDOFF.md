@@ -147,7 +147,6 @@ const store = {};
 const session = connectors.fromClient({
   client,
   network,
-  Output,
   store
 });
 
