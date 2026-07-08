@@ -138,6 +138,7 @@ import { connectBitBoxNovaBle } from '@bitcoinerlab/bitbox-react-native';
 import {
   connectors,
   keyExpression,
+  registerPolicy,
   signers
 } from '@bitcoinerlab/descriptors/bitbox';
 
@@ -155,7 +156,7 @@ const key = await keyExpression({
   originPath: "/84'/0'/0'",
   keyPath: '/0/*'
 });
-// Build/register/sign with @bitcoinerlab/descriptors/bitbox helpers.
+// Build descriptors and pass them to registerPolicy/displayAddress/signers.
 // Persist JSON.stringify(store) or JSON.stringify(session.store), not session.
 
 await client.close();

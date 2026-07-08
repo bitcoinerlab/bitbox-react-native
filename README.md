@@ -216,7 +216,7 @@ const session = connectors.fromClient({
 });
 
 try {
-  // Use session with keyExpression/registerWalletPolicy/signers from
+  // Use session with keyExpression/registerPolicy/displayAddress/signers from
   // @bitcoinerlab/descriptors/bitbox.
   // Persist JSON.stringify(store) or JSON.stringify(session.store), not session.
 } finally {
