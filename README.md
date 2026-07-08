@@ -14,9 +14,8 @@ transport wiring, but it is not production-ready yet.
 - iOS BitBox Nova BLE `connect`, `disconnect`, `version`, `rootFingerprint`,
   `btcXpub`, `btcAddress`, `btcRegisterScriptConfig`,
   `btcIsScriptConfigRegistered`, `btcSignPSBT`, and `btcSignMessage`: wired
-  through CoreBluetooth, gomobile, and `bitbox02-api-go`. The current native
-  method set except `btcSignMessage` has been integration-tested on physical
-  hardware; message signing still needs physical validation.
+  through CoreBluetooth, gomobile, and `bitbox02-api-go`, and integration-tested
+  on physical iPhone plus BitBox Nova hardware.
 - Android BitBox02 USB transport/protocol: not implemented.
 - Android BitBox Nova BLE transport/protocol: not implemented.
 - Expo Go support: not possible, because custom native code is required.
@@ -230,10 +229,10 @@ The iOS module has CoreBluetooth transport wiring for BitBox Nova and uses the
 vendored gomobile framework at `ios/Frameworks/Bitboxnative.xcframework` for the
 BitBox protocol. The separate `bitbox-rn-integration` dev-client app has
 validated the current iOS native method set on a physical iPhone plus BitBox
-Nova, including address display, multisig registration checks, and PSBT signing.
-`btcSignMessage` is wired but still needs physical-device validation. Android
-remains placeholder-only. The JavaScript resolver intentionally does not fall
-back to legacy `react-native` `NativeModules`.
+Nova, including address display, sorted multisig registration/display, generic
+ordered multisig policy display/signing, PSBT signing, and message signing.
+Android remains placeholder-only. The JavaScript resolver intentionally does not
+fall back to legacy `react-native` `NativeModules`.
 
 ## Development
 

@@ -17,10 +17,8 @@ structurally compatible.
   `disconnect`, `version`, and `rootFingerprint` through the Go protocol layer.
 - iOS BTC methods serialize Swift/JS parameters into the Go wrapper for
   `btcXpub`, `btcAddress`, `btcRegisterScriptConfig`,
-  `btcIsScriptConfigRegistered`, `btcSignPSBT`, and `btcSignMessage`. The
-  pre-message-signing iOS native method set has been validated on physical
-  iPhone plus BitBox Nova hardware; `btcSignMessage` still needs physical
-  validation.
+  `btcIsScriptConfigRegistered`, `btcSignPSBT`, and `btcSignMessage`, and have
+  been validated on physical iPhone plus BitBox Nova hardware.
 - Android native methods still throw explicit not-implemented errors.
 - Upstream BitBox API survey is documented in
   `docs/UPSTREAM_BITBOX_API_SURVEY.md`.
@@ -60,11 +58,13 @@ structurally compatible.
 - The separate `bitbox-rn-integration` Expo dev-client app validated iOS BitBox
   Nova BLE
   `connect`, `version`, `rootFingerprint`, `btcXpub`, `btcAddress`,
-  `btcRegisterScriptConfig`, `btcIsScriptConfigRegistered`, and `btcSignPSBT` on
-  physical hardware. Pairing UX is currently acceptable for the tested BLE
-  reconnect path because the wrapper uses upstream optional Noise pairing
-  confirmation over paired Bluetooth. A persisted Noise config backend is not
-  designed yet and should be added only for a concrete non-BLE or explicit
+  `btcRegisterScriptConfig`, `btcIsScriptConfigRegistered`, `btcSignPSBT`, and
+  `btcSignMessage` on physical hardware. It also validated descriptors
+  sortedmulti registration/display and generic ordered `wsh(multi(...))`
+  display/signing on physical hardware. Pairing UX is currently acceptable for
+  the tested BLE reconnect path because the wrapper uses upstream optional Noise
+  pairing confirmation over paired Bluetooth. A persisted Noise config backend is
+  not designed yet and should be added only for a concrete non-BLE or explicit
   app-side pairing UX need.
 - The separate integration app has buttons for read-only address derivation,
   device-displayed address derivation, multisig registration/isRegistered,
