@@ -265,12 +265,7 @@ public class BitcoinerlabBitBoxModule: Module {
   public func definition() -> ModuleDefinition {
     Name(bitboxNativeModuleName)
 
-    AsyncFunction("connect") { (_ params: [String: Any]) throws -> [String: Any] in
-      let requestedTransport = (params["transport"] as? String) ?? "auto"
-      if requestedTransport != "auto" && requestedTransport != "ble" {
-        throw BitBoxNativeError(message: "iOS only supports BitBox Nova BLE transport")
-      }
-
+    AsyncFunction("connectBle") { (_ params: [String: Any]) throws -> [String: Any] in
       let transport = BitBoxBleTransport(timeoutMs: bitboxTimeoutMs(from: params))
       let productInfo = try transport.connect(deviceId: params["deviceId"] as? String)
       var goError: NSError?
@@ -299,6 +294,11 @@ public class BitcoinerlabBitBoxModule: Module {
         "product": session.product,
         "version": session.version
       ]
+    }
+
+    AsyncFunction("connectUsb") { (_ params: [String: Any]) throws -> [String: Any] in
+      _ = params
+      throw BitBoxNativeError(message: "USB is not supported on iOS yet; use connectBitBoxNovaBle")
     }
 
     AsyncFunction("disconnect") { (_ sessionId: String) throws in

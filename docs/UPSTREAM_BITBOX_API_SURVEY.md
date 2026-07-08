@@ -106,18 +106,18 @@ Notes:
 
 ## Upstream Method Mapping
 
-| JS native method                   | Upstream Go call                                                                              |
-| ---------------------------------- | --------------------------------------------------------------------------------------------- |
-| `connect(params)`                  | Open native transport, create `u2fhid.Communication`, create `firmware.Device`, call `Init()` |
-| `disconnect(sessionId)`            | `device.Close()`                                                                              |
-| `version(sessionId)`               | `device.Version().String()`                                                                   |
-| `rootFingerprint(sessionId)`       | `device.RootFingerprint()`, hex-encode 4 bytes                                                |
-| `btcXpub(...)`                     | `device.BTCXPub(...)`                                                                         |
-| `btcAddress(...)`                  | `device.BTCAddress(...)`                                                                      |
-| `btcRegisterScriptConfig(...)`     | `device.BTCRegisterScriptConfig(...)`                                                         |
-| `btcIsScriptConfigRegistered(...)` | `device.BTCIsScriptConfigRegistered(...)`                                                     |
-| `btcSignPSBT(...)`                 | Parse base64 PSBT, call `device.BTCSignPSBT(...)`, serialize base64 PSBT                      |
-| `btcSignMessage(...)`              | `device.BTCSignMessage(...)`, return raw signature fields and Electrum 65-byte signature      |
+| JS native method                    | Upstream Go call                                                                              |
+| ----------------------------------- | --------------------------------------------------------------------------------------------- |
+| `connectBle(...)`/`connectUsb(...)` | Open native transport, create `u2fhid.Communication`, create `firmware.Device`, call `Init()` |
+| `disconnect(sessionId)`             | `device.Close()`                                                                              |
+| `version(sessionId)`                | `device.Version().String()`                                                                   |
+| `rootFingerprint(sessionId)`        | `device.RootFingerprint()`, hex-encode 4 bytes                                                |
+| `btcXpub(...)`                      | `device.BTCXPub(...)`                                                                         |
+| `btcAddress(...)`                   | `device.BTCAddress(...)`                                                                      |
+| `btcRegisterScriptConfig(...)`      | `device.BTCRegisterScriptConfig(...)`                                                         |
+| `btcIsScriptConfigRegistered(...)`  | `device.BTCIsScriptConfigRegistered(...)`                                                     |
+| `btcSignPSBT(...)`                  | Parse base64 PSBT, call `device.BTCSignPSBT(...)`, serialize base64 PSBT                      |
+| `btcSignMessage(...)`               | `device.BTCSignMessage(...)`, return raw signature fields and Electrum 65-byte signature      |
 
 The JS contract mirrors the raw `bitbox-api` provider-client boundary for
 Bitcoin methods. Descriptors computes and passes the xpub arguments internally
@@ -177,9 +177,9 @@ state is surfaced through:
 - `device.ChannelHashVerify(ok)`
 - `device.Status()`
 
-The Go wrapper should expose a small event/callback bridge to native code and a
-pairing confirmation method. The public JS `onPairingCode` flow should be wired
-on top of that later; do not add a generic command channel.
+If app-side pairing UX becomes necessary, the Go wrapper should expose a small
+event/callback bridge to native code and a pairing confirmation method. Do not
+add a generic command channel.
 
 For BLE, the wrapper passes
 `firmware.WithOptionalNoisePairingConfirmation(true)`. Upstream documents this
@@ -206,7 +206,7 @@ Bluetooth pairing/bonding alone.
   after device-side confirmation, matching upstream Bluetooth guidance.
 - The current Go pairing config is in-memory. Persist it only after defining the
   exact non-BLE or explicit pairing UX requirement.
-- iOS BLE `connect`, `version`, `rootFingerprint`, `btcXpub`, `btcAddress`,
+- iOS BLE `connectBle`, `version`, `rootFingerprint`, `btcXpub`, `btcAddress`,
   `btcRegisterScriptConfig`, `btcIsScriptConfigRegistered`, and `btcSignPSBT`
-  are validated on physical BitBox Nova hardware. `btcSignMessage`, Android BLE,
-  and Android USB still need real-device validation.
+  are validated on physical BitBox Nova hardware. Android BLE and Android USB
+  still need real-device validation.

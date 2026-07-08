@@ -155,9 +155,9 @@ try {
 
 Current connection helpers:
 
-- `connectBitBox(params?)`: native transport auto-selection.
-- `connectBitBoxNovaBle(params?)`: iOS/Android BLE intent for BitBox Nova.
-- `connectBitBoxAndroidUsb(params?)`: Android USB intent for classic BitBox02.
+- `connectBitBoxNovaBle(params?)`: connect to BitBox Nova over BLE.
+- `connectBitBoxUsb(params?)`: connect to a BitBox over USB. Android is the
+  first supported USB platform; iOS USB is not implemented yet.
 - `ReactNativeBitBoxClient`: thin wrapper around the native module session.
 
 The native module is named `BitcoinerlabBitBox` and is expected to expose this

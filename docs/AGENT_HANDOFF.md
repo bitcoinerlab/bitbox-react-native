@@ -49,9 +49,10 @@ structurally compatible.
 - Bare React Native apps are acceptable hosts if they install/configure Expo
   Modules native infrastructure. A separate plain React Native
   TurboModule/codegen implementation does not exist yet.
-- Calling `connectBitBox(...)` fails with a clear missing-native-module error if
-  the native module is not linked. On iOS, BLE is attempted for `auto`/`ble`; on
-  Android, the placeholder still throws not implemented.
+- Calling `connectBitBoxNovaBle(...)` or `connectBitBoxUsb(...)` fails
+  with a clear missing-native-module error if the native module is not linked.
+  On iOS, only the BLE helper is supported; on Android, both connect paths are
+  still placeholders until native transport code is implemented.
 - `src/types.ts` intentionally owns the native BitBox client contract. Do not
   import types from `@bitcoinerlab/descriptors` just for convenience; that would
   couple this package to descriptors and recreate dependency issues.
@@ -91,12 +92,12 @@ The JavaScript wrapper expects a React Native native module named
 `src/types.ts`.
 
 The native module must manage device/session lifetime internally and return a
-session from `connect(...)`:
+session from `connectBle(...)` or `connectUsb(...)`:
 
 ```ts
 type BitBoxReactNativeSession = {
   id: string;
-  transport: 'auto' | 'ble' | 'android-usb';
+  transport: 'ble' | 'usb';
   product?: string;
   version?: string;
 };
@@ -232,10 +233,11 @@ Do not try to make `bitbox-api` WASM work on iOS React Native.
 ## Android Transport Goal
 
 Android should support both USB and BLE so apps can choose the transport that
-fits the user's device and situation. The JS API already accepts a `transport`
-option; keep that single selection point instead of exposing separate Android
-client types. For `auto`, prefer USB when an attached BitBox is available and
-permissioned, then fall back to BLE discovery for BitBox Nova.
+fits the user's device and situation. Keep the public API explicit:
+`connectBitBoxUsb(...)` for USB and `connectBitBoxNovaBle(...)` for BLE. USB is
+Android-only for now, but the public helper name is platform-neutral so future
+iOS USB support would not need a new app-facing API. Do not add automatic USB/BLE
+fallback inside this package.
 
 The first Android implementation can be split into USB and BLE milestones, but
 the end state should cover both on real hardware.
@@ -357,8 +359,7 @@ parsing in native code unless absolutely necessary.
 1. Validate iOS with descriptors' `connectors.fromClient(...)`.
 2. Design persisted Noise pairing/config storage only when a non-BLE or explicit
    app-side pairing-confirmation requirement is concrete.
-3. Wire Android USB and BLE, with `auto` preferring USB when available and BLE as
-   the Nova fallback.
+3. Wire Android USB and BLE as explicit connect paths.
 4. Validate Android USB and BLE on real hardware.
 5. Validate Android with descriptors' `connectors.fromClient(...)` once Android
    BTC methods are wired.

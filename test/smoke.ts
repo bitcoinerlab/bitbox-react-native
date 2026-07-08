@@ -12,7 +12,8 @@ import type {
 } from '../src';
 
 const nativeModule: BitBoxNativeModule = {
-  connect: async () => ({ id: 'session', transport: 'ble' }),
+  connectBle: async () => ({ id: 'session', transport: 'ble' }),
+  connectUsb: async () => ({ id: 'session', transport: 'usb' }),
   disconnect: async () => undefined,
   version: async () => '0.0.0',
   rootFingerprint: async () => '00000000',

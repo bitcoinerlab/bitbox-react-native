@@ -16,8 +16,12 @@ class BitcoinerlabBitBoxModule : Module() {
   override fun definition() = ModuleDefinition {
     Name(BITBOX_NATIVE_MODULE_NAME)
 
-    AsyncFunction("connect") { params: Map<String, Any?> ->
-      throw BitcoinerlabBitBoxNotImplementedException("connect")
+    AsyncFunction("connectBle") { params: Map<String, Any?> ->
+      throw BitcoinerlabBitBoxNotImplementedException("connectBle")
+    }
+
+    AsyncFunction("connectUsb") { params: Map<String, Any?> ->
+      throw BitcoinerlabBitBoxNotImplementedException("connectUsb")
     }
 
     AsyncFunction("disconnect") { sessionId: String ->

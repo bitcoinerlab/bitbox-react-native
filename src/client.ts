@@ -11,8 +11,7 @@ import type {
   BitBoxScriptConfig,
   BitBoxScriptConfigWithKeypath,
   BitBoxXPubType,
-  ConnectedBitBoxClient,
-  NativeBitBoxConnectParams
+  ConnectedBitBoxClient
 } from './types';
 
 function uint8Array(value: number[] | Uint8Array): Uint8Array {
@@ -23,14 +22,7 @@ function bigintValue(value: number | string | bigint): bigint {
   return typeof value === 'bigint' ? value : BigInt(value);
 }
 
-function nativeConnectParams({
-  onPairingCode,
-  ...params
-}: BitBoxConnectParams): NativeBitBoxConnectParams {
-  void onPairingCode;
-  return params;
-}
-
+/** Wraps one native BitBox session and exposes the provider-client methods. */
 export class ReactNativeBitBoxClient implements ConnectedBitBoxClient {
   readonly session: BitBoxReactNativeSession;
 
@@ -156,22 +148,20 @@ export class ReactNativeBitBoxClient implements ConnectedBitBoxClient {
   }
 }
 
-export async function connectBitBox(
+/** Connects to a BitBox Nova over Bluetooth. */
+export async function connectBitBoxNovaBle(
   params: BitBoxConnectParams = {}
 ): Promise<ConnectedBitBoxClient> {
   const nativeModule = getBitBoxNativeModule();
-  const session = await nativeModule.connect(nativeConnectParams(params));
+  const session = await nativeModule.connectBle(params);
   return new ReactNativeBitBoxClient({ nativeModule, session });
 }
 
-export function connectBitBoxNovaBle(
-  params: Omit<BitBoxConnectParams, 'transport'> = {}
+/** Connects to a BitBox over USB. Android is the first supported USB platform. */
+export async function connectBitBoxUsb(
+  params: BitBoxConnectParams = {}
 ): Promise<ConnectedBitBoxClient> {
-  return connectBitBox({ ...params, transport: 'ble' });
-}
-
-export function connectBitBoxAndroidUsb(
-  params: Omit<BitBoxConnectParams, 'transport'> = {}
-): Promise<ConnectedBitBoxClient> {
-  return connectBitBox({ ...params, transport: 'android-usb' });
+  const nativeModule = getBitBoxNativeModule();
+  const session = await nativeModule.connectUsb(params);
+  return new ReactNativeBitBoxClient({ nativeModule, session });
 }

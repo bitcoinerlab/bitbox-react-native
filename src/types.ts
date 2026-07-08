@@ -102,8 +102,10 @@ export type BitBoxClient = {
   ): Promise<BitBoxMessageSignature>;
 };
 
-export type BitBoxReactNativeTransport = 'auto' | 'ble' | 'android-usb';
+/** Transport used by an active native BitBox session. */
+export type BitBoxReactNativeTransport = 'ble' | 'usb';
 
+/** Metadata returned by native code after a successful connection. */
 export type BitBoxReactNativeSession = {
   id: string;
   transport: BitBoxReactNativeTransport;
@@ -111,33 +113,20 @@ export type BitBoxReactNativeSession = {
   version?: string;
 };
 
+/** Options shared by the explicit BLE and USB connect helpers. */
 export type BitBoxConnectParams = {
-  /**
-   * Connection transport. On iOS, only `ble` is expected to work for BitBox
-   * Nova. On Android, `android-usb` is possible for classic BitBox02 and BLE
-   * should be possible for Nova once implemented.
-   *
-   * @default 'auto'
-   */
-  transport?: BitBoxReactNativeTransport;
-  /** Optional native timeout in milliseconds. */
+  /** Native connection timeout in milliseconds. */
   timeoutMs?: number;
-  /** Optional platform-specific device identifier to connect to. */
+  /** Optional platform device identifier, such as a BLE peripheral id. */
   deviceId?: string;
-  /**
-   * Pairing code callback. The first native implementation will likely deliver
-   * this through an event emitter rather than the direct `connect()` call.
-   */
-  onPairingCode?: (pairingCode: string) => void | Promise<void>;
 };
 
-export type NativeBitBoxConnectParams = Omit<
-  BitBoxConnectParams,
-  'onPairingCode'
->;
-
+/** Native Expo module surface used by the JavaScript client wrapper. */
 export type BitBoxNativeModule = {
-  connect(params: NativeBitBoxConnectParams): Promise<BitBoxReactNativeSession>;
+  /** Opens a BLE session, currently for BitBox Nova. */
+  connectBle(params: BitBoxConnectParams): Promise<BitBoxReactNativeSession>;
+  /** Opens a USB session. Android is the first supported USB platform. */
+  connectUsb(params: BitBoxConnectParams): Promise<BitBoxReactNativeSession>;
   disconnect(sessionId: string): Promise<void>;
   version(sessionId: string): Promise<string>;
   rootFingerprint(sessionId: string): Promise<string>;
@@ -184,6 +173,7 @@ export type BitBoxNativeModule = {
   ): Promise<NativeBitBoxMessageSignature>;
 };
 
+/** Connected raw BitBox provider client. */
 export type ConnectedBitBoxClient = BitBoxClient & {
   readonly session: BitBoxReactNativeSession;
   close(): Promise<void>;
