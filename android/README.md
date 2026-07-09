@@ -14,8 +14,11 @@ Both paths bridge raw HID-style reads/writes into the vendored gomobile AAR at
 `android/libs/bitboxnative-android.aar`. USB shows a native app-side pairing
 dialog for the BitBox Noise pairing code before confirming pairing in the Go
 firmware layer, and stores approved USB Noise pairing state in app-private
-storage for later reconnects. Android BLE/USB still needs real-device
-validation.
+storage for later reconnects.
+
+Android USB and BLE have been validated on physical Android hardware through the
+integration app, including connection, pairing, provider-client calls,
+descriptor-backed wallet flows, PSBT signing and message signing.
 
 Official Android source pointers:
 

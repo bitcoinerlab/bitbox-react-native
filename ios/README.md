@@ -9,11 +9,10 @@ Current status:
   BLE.
 - `connect`, `disconnect`, `version`, `rootFingerprint`, `btcXpub`,
   `btcAddress`, `btcRegisterScriptConfig`, `btcIsScriptConfigRegistered`, and
-  `btcSignPSBT` call the gomobile Go wrapper. `btcSignMessage` is also wired and
-  still needs physical-device validation.
-- The pre-message-signing native method set has been integration-tested on
-  physical hardware, including non-displaying xpub/address reads, displayed
-  address verification, multisig registration/isRegistered checks, and fake-PSBT
+  `btcSignPSBT` call the gomobile Go wrapper. `btcSignMessage` is also wired.
+- The native method set has been integration-tested on physical hardware,
+  including non-displaying xpub/address reads, displayed address verification,
+  multisig registration/isRegistered checks, fake-PSBT signing, and message
   signing.
 - A physical-device integration test connected to a BitBox Nova over BLE and
   printed the root fingerprint. The tested BLE reconnect path relies on iOS

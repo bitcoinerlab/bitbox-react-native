@@ -22,7 +22,8 @@ structurally compatible.
 - Android BLE and USB native methods are wired through Kotlin transports,
   gomobile, and `bitbox02-api-go`; USB has a native app-side pairing-code dialog.
   Approved USB Noise pairing state is persisted in app-private storage. Android
-  still needs physical-device validation.
+  USB and BLE have been validated on physical Android hardware through the
+  integration app.
 - Upstream BitBox API survey is documented in
   `docs/UPSTREAM_BITBOX_API_SURVEY.md`.
 - A tiny Go wrapper package exists under `native/go` and imports upstream
@@ -58,7 +59,7 @@ structurally compatible.
 - Calling `connectBitBoxNovaBle(...)` or `connectBitBoxUsb(...)` fails with a
   clear missing-native-module error if the native module is not linked. On iOS,
   only the BLE helper is supported. On Android, both explicit connect paths are
-  wired but still require real-device validation.
+  wired and validated on physical hardware.
 - `src/types.ts` intentionally owns the native BitBox client contract. Do not
   import types from `@bitcoinerlab/descriptors` just for convenience; that would
   couple this package to descriptors and recreate dependency issues.
@@ -76,6 +77,12 @@ structurally compatible.
 - The separate integration app has buttons for read-only address derivation,
   device-displayed address derivation, multisig registration/isRegistered,
   fake-PSBT generation/signing, and shareable logs.
+- The same integration app has validated Android USB on physical hardware,
+  including connection, pairing, provider-client calls, descriptor-backed wallet
+  flows, PSBT signing, and message signing.
+- The same integration app has validated Android BLE on physical hardware,
+  including connection, pairing, provider-client calls, descriptor-backed wallet
+  flows, PSBT signing and message signing.
 
 ## Non-Goals
 
@@ -249,7 +256,8 @@ Android-only for now, but the public helper name is platform-neutral so future
 iOS USB support would not need a new app-facing API. Do not add automatic USB/BLE
 fallback inside this package.
 
-Both Android paths are wired and must still be validated on real hardware.
+Android USB and BLE are wired and physically validated through the integration
+app.
 
 ## Android USB Notes
 
@@ -270,11 +278,14 @@ Implemented shape:
 - Bridge raw read/write operations into the Go protocol layer.
 - Add `android.hardware.usb.host`, USB permissions/intent filters, and device
   filter resources through the Expo config plugin.
+- Physical Android USB validation has covered connection, pairing,
+  provider-client calls, descriptor-backed wallet flows, PSBT signing, and
+  message signing through the integration app.
 
 ## Android BLE Notes
 
-Android BLE target: BitBox Nova. Reuse the iOS BLE UUIDs and flow, then
-validate on real Nova hardware.
+Android BLE target: BitBox Nova. The transport is wired and physically validated
+through the integration app.
 
 Implemented shape:
 
@@ -340,8 +351,10 @@ Add tests in phases:
 - Native unit tests for serialization and error handling where practical.
 - Manual iOS BitBox Nova BLE integration test on real hardware for each native
   method.
-- Manual Android USB integration test on real hardware.
-- Manual Android BitBox Nova BLE integration test on real hardware.
+- Manual Android USB integration test on real hardware. Current status:
+  validated through the integration app.
+- Manual Android BitBox Nova BLE integration test on real hardware. Current
+  status: validated through the integration app.
 - Manual descriptors integration test that uses `connectors.fromClient(...)` to
   derive xpubs, register/display a wallet, and sign a PSBT.
 
@@ -364,9 +377,5 @@ parsing in native code unless absolutely necessary.
 
 ## Immediate Next Steps
 
-1. Validate iOS with descriptors' `connectors.fromClient(...)`.
-2. Design persisted Noise pairing/config storage only when a non-BLE or explicit
-   app-side pairing-confirmation requirement is concrete.
-3. Validate Android USB and BLE on real hardware.
-4. Validate Android with descriptors' `connectors.fromClient(...)`.
-5. Decide whether USB/app-side pairing confirmation needs persisted Noise config.
+1. Decide whether USB/app-side pairing confirmation needs reset/export UX beyond
+   app-private persisted Noise config.

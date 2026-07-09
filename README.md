@@ -1,76 +1,116 @@
-# @bitcoinerlab/bitbox-react-native
+﻿# @bitcoinerlab/bitbox-react-native
 
-React Native native BitBox client provider for mobile Bitcoin apps.
+Use a BitBox from a React Native app, then pass it to
+`@bitcoinerlab/descriptors` to build descriptors, show addresses, register
+policies and sign PSBTs.
 
-This package is an early mobile BitBox implementation. It exposes a small
-TypeScript API for a native BitBox client and has native iOS BLE plus Android
-BLE/USB transport wiring, but it is not production-ready yet.
+This package provides the mobile transport layer. Descriptors stays in charge of
+wallet policy, Miniscript, PSBT creation and finalization.
 
-## Status
+## Quick Example
 
-- JavaScript API: scaffolded.
-- Expo Modules / React Native New Architecture-compatible native package
-  foundation: scaffolded.
-- iOS BitBox Nova BLE `connect`, `disconnect`, `version`, `rootFingerprint`,
-  `btcXpub`, `btcAddress`, `btcRegisterScriptConfig`,
-  `btcIsScriptConfigRegistered`, `btcSignPSBT`, and `btcSignMessage`: wired
-  through CoreBluetooth, gomobile, and `bitbox02-api-go`, and integration-tested
-  on physical iPhone plus BitBox Nova hardware.
-- Android BitBox USB transport/protocol: wired through Android USB Host,
-  gomobile, and `bitbox02-api-go`; pending physical-device validation.
-- Android BitBox Nova BLE transport/protocol: wired through Android BLE,
-  gomobile, and `bitbox02-api-go`; pending physical-device validation.
-- Expo Go support: not possible, because custom native code is required.
+This example connects to a BitBox, builds a single-key relative timelock
+descriptor, registers it on the device, signs a PSBT and finalizes the input.
 
-Do not treat this package as production-ready BitBox support until descriptor
-integration and target transports have been validated on real devices.
+```ts
+import { connectBitBoxNovaBle } from '@bitcoinerlab/bitbox-react-native';
+// This example uses the bitcoinjs-lib preset. If you prefer @scure/btc-signer
+// and noble/scure types, use @bitcoinerlab/descriptors-scure instead.
+import { networks, Output, Psbt } from '@bitcoinerlab/descriptors';
+import {
+  connectors,
+  displayAddress,
+  keyExpression,
+  registerPolicy,
+  signers
+} from '@bitcoinerlab/descriptors/bitbox';
 
-## Why This Package Exists
+const network = networks.bitcoin;
+// Stores & caches xpubs, fingerprint data and policy metadata as JSON.
+const store = {};
+const client = await connectBitBoxNovaBle({ timeoutMs: 60_000 });
 
-Browser and desktop BitBox integrations can use `bitbox-api`, WebHID, or
-BitBoxBridge. React Native mobile apps cannot rely on those transports.
+try {
+  const session = connectors.fromClient({ client, network, store });
 
-The mobile path needs native code:
+  const bitboxKey = await keyExpression({
+    session,
+    originPath: "/48'/0'/0'/2'",
+    keyPath: '/0/*'
+  });
 
-- iOS: CoreBluetooth for BitBox Nova BLE.
-- Android: USB Host for BitBox USB and native BLE for BitBox Nova.
-- Protocol layer: preferably `bitbox02-api-go` via `gomobile bind`, mirroring
-  the official BitBoxApp approach.
+  const descriptor = `wsh(and_v(v:pk(${bitboxKey}),older(5)))`;
 
-Descriptor and wallet libraries should stay transport-free. Apps can inject this
-native client into those libraries when their client contract is structurally
-compatible.
+  await registerPolicy({
+    session,
+    descriptor,
+    name: '5-block vault'
+  });
 
-## Installation
+  const receiveAddress = await displayAddress({
+    session,
+    descriptor,
+    index: 0
+  });
 
-This package contains custom native code. It works in apps that can build and
-load native modules, such as Expo development builds, EAS builds, Expo prebuild
-apps, or bare React Native apps with Expo Modules installed. It does not work in
-Expo Go.
+  const vaultOutput = new Output({ descriptor, index: 0, network });
+  const psbt = new Psbt({ network });
 
-### Expo Development Builds / EAS
+  const finalizeInput = vaultOutput.updatePsbtAsInput({
+    psbt,
+    txHex: await fetchPreviousTransactionHex(),
+    vout: 0
+  });
 
-```sh
-npx expo install @bitcoinerlab/bitbox-react-native
-```
+  new Output({
+    descriptor: `addr(${await chooseRecipientAddress()})`,
+    network
+  }).updatePsbtAsOutput({ psbt, value: 90_000n });
 
-If you are creating a local development build, install `expo-dev-client` too:
+  // The BitBox signs after the user confirms on the device.
+  await signers.sign({ psbt, session });
 
-```sh
-npx expo install expo-dev-client
-```
+  // `updatePsbtAsInput(...)` returns the finalizer for this descriptor input.
+  finalizeInput({ psbt });
 
-Add this package's config plugin to your Expo app config:
+  const transactionHex = psbt.extractTransaction().toHex();
+  await broadcastTransaction(transactionHex);
 
-```json
-{
-  "expo": {
-    "plugins": ["@bitcoinerlab/bitbox-react-native"]
-  }
+  // session.store keeps track of policies and is JSON-serializable.
+  saveWalletStoreJSON(session.store);
+  console.log({ receiveAddress, transactionHex });
+} finally {
+  await client.close();
 }
 ```
 
-If the same app config also uses `expo-dev-client`, include both plugins:
+For USB on Android, use the same descriptors code and change only the connection
+helper:
+
+```ts
+import { connectBitBoxUsb } from '@bitcoinerlab/bitbox-react-native';
+
+const client = await connectBitBoxUsb({ timeoutMs: 60_000 });
+```
+
+If the app asks you to confirm a pairing code, continue only when it matches the
+BitBox display. BLE pairing/bonding is handled by the operating system. USB
+Noise pairing approvals are stored in app-private storage for later reconnects.
+
+## Install
+
+This package contains native code. It works in Expo development builds, EAS
+builds, Expo prebuild apps and bare React Native apps with Expo Modules
+installed. It does not work in Expo Go.
+
+```sh
+npx expo install @bitcoinerlab/bitbox-react-native
+npx expo install expo-dev-client
+npm install @bitcoinerlab/descriptors buffer
+```
+
+Add the config plugin to your Expo app config, usually `app.json` or
+`app.config.js`:
 
 ```json
 {
@@ -80,131 +120,21 @@ If the same app config also uses `expo-dev-client`, include both plugins:
 }
 ```
 
-Expo autolinking links this native module automatically after installation, but
-Expo does not generally add third-party config plugins to `app.json` for you.
-The plugin is required because it adds the iOS Bluetooth usage description and
-Android Bluetooth/USB manifest entries needed by the native transports.
-
-After installing the package or changing the plugin list, rebuild the native app.
-A Metro reload is not enough for native module or `Info.plist` changes.
+Rebuild the native app after installing the package or changing plugins:
 
 ```sh
 npx expo run:ios --device
 npx expo run:android --device
 ```
 
-Or build with EAS:
+The plugin adds the iOS Bluetooth usage string plus the Android Bluetooth and USB
+manifest entries used by the native transports.
 
-```sh
-eas build --profile development --platform ios
-eas build --profile development --platform android
-```
+## React Native Buffer Setup
 
-Expected iOS prompts during development:
-
-- Local Network: used by the development build to reach the Expo/Metro server.
-- Bluetooth: used by this package to scan for and connect to the BitBox Nova.
-
-Expected Android prompts during development:
-
-- Nearby devices/Bluetooth: used by BLE to scan for and connect to the BitBox
-  Nova on Android 12+.
-- Location: used only on Android 11 and older where BLE scanning is gated behind
-  location permission.
-- USB device access: used by USB Host before opening an attached BitBox.
-- BitBox pairing dialog: used by USB to show the Noise pairing code that must
-  match the BitBox display before you approve pairing. Approved USB pairing
-  state is stored in app-private storage for later reconnects.
-
-### Bare React Native
-
-The native foundation uses Expo Modules API rather than legacy React Native
-`NativeModules` wiring. A bare React Native app does not need to use the Expo
-managed workflow, but it does need the Expo Modules native infrastructure. A
-separate plain React Native TurboModule/codegen implementation is not included.
-
-For an existing bare React Native app, first install and configure Expo Modules:
-
-```sh
-npx install-expo-modules@latest
-```
-
-Then install this package:
-
-```sh
-npm install @bitcoinerlab/bitbox-react-native
-```
-
-For iOS, install pods and rebuild the app:
-
-```sh
-npx pod-install
-```
-
-If your bare app does not use Expo prebuild/config plugins to generate native
-projects, add `NSBluetoothAlwaysUsageDescription` manually to your iOS
-`Info.plist`, and add the Android Bluetooth/USB permissions, USB host feature,
-USB attached intent filter, and `@xml/bitbox_device_filter` metadata manually to
-the Android app. The iOS pod currently requires deployment target `15.1` or
-newer.
-
-This package does not depend on `@bitcoinerlab/descriptors`. Its TypeScript
-types intentionally define the BitBox provider-client contract locally so the
-package can be used independently.
-
-## API
-
-```ts
-import { connectBitBoxNovaBle } from '@bitcoinerlab/bitbox-react-native';
-
-const client = await connectBitBoxNovaBle();
-
-try {
-  const fingerprint = await client.rootFingerprint();
-  const version = await client.version();
-} finally {
-  await client.close();
-}
-```
-
-Current public API:
-
-- `connectBitBoxNovaBle(params?)`: connect to BitBox Nova over BLE.
-- `connectBitBoxUsb(params?)`: connect to a BitBox over USB. Android is the
-  first supported USB platform; iOS USB is not implemented yet.
-
-Both helpers return a connected, Bitcoin-only, raw `bitbox-api`-compatible
-provider client:
-
-- `version()`
-- `rootFingerprint()`
-- `btcXpub(apiNetwork, keypath, xpubType, display)`
-- `btcAddress(...)`
-- `btcRegisterScriptConfig(apiNetwork, scriptConfig, keypathAccount, xpubType, name?)`
-- `btcIsScriptConfigRegistered(...)`
-- `btcSignPSBT(...)`
-- `btcSignMessage(...)`
-
-The native module and its JSON bridge parameters are private implementation
-details. App code should call the connection helpers and pass normal typed BitBox
-request objects.
-
-## Optional Descriptors Integration
-
-Apps that use `@bitcoinerlab/descriptors` can install it separately and inject
-the connected client with `connectors.fromClient(...)`:
-
-```sh
-npm install @bitcoinerlab/descriptors
-```
-
-When using the bitcoinjs-based `@bitcoinerlab/descriptors` preset in React
-Native/Hermes, your app may also need a global `Buffer` polyfill before importing
-the descriptors package:
-
-```sh
-npm install buffer
-```
+`@bitcoinerlab/bitbox-react-native` does not need a Buffer polyfill by itself.
+The bitcoinjs-based descriptors preset may need one in React Native/Hermes. Load
+it before importing descriptors code:
 
 ```ts
 import { Buffer as BufferPolyfill } from 'buffer';
@@ -214,64 +144,119 @@ import { Buffer as BufferPolyfill } from 'buffer';
 ).Buffer ??= BufferPolyfill;
 ```
 
-The `Buffer` polyfill is not required by `@bitcoinerlab/bitbox-react-native`
-itself; it is only for app code that chooses the bitcoinjs descriptors preset.
+## Public API
 
 ```ts
-import { connectBitBoxNovaBle } from '@bitcoinerlab/bitbox-react-native';
-import { connectors } from '@bitcoinerlab/descriptors/bitbox';
-
-const client = await connectBitBoxNovaBle();
-const store = {};
-
-const session = connectors.fromClient({
-  client,
-  network,
-  store
-});
-
-try {
-  // Use session with keyExpression/registerPolicy/displayAddress/signers from
-  // @bitcoinerlab/descriptors/bitbox.
-  // Persist JSON.stringify(store) or JSON.stringify(session.store), not session.
-} finally {
-  await client.close();
-}
+import {
+  connectBitBoxNovaBle,
+  connectBitBoxUsb
+} from '@bitcoinerlab/bitbox-react-native';
 ```
+
+- `connectBitBoxNovaBle(params?)`: connect to BitBox Nova over BLE.
+- `connectBitBoxUsb(params?)`: connect to a BitBox over USB. Android is supported
+  first. iOS USB is not implemented yet.
+
+Both helpers return a connected Bitcoin-only provider client:
+
+- `version()`
+- `rootFingerprint()`
+- `btcXpub(apiNetwork, keypath, xpubType, display)`
+- `btcAddress(...)`
+- `btcRegisterScriptConfig(...)`
+- `btcIsScriptConfigRegistered(...)`
+- `btcSignPSBT(...)`
+- `btcSignMessage(...)`
+- `close()`
+
+Most apps should not call those methods directly. Pass the client to
+`connectors.fromClient(...)` from `@bitcoinerlab/descriptors/bitbox` and use the
+descriptor helpers instead.
+
+The native module and its JSON bridge parameters are private implementation
+details. App code passes normal typed BitBox and descriptors objects.
+
+## Persist The Descriptors Store
+
+Do not persist a live `session` or `client`. Persist the descriptors `store`:
+
+```ts
+const store = JSON.parse((await storage.getItem('bitbox-store')) ?? '{}');
+const session = connectors.fromClient({ client, network, store });
+
+// After registration, address display or signing:
+await storage.setItem('bitbox-store', JSON.stringify(session.store));
+```
+
+The store caches xpubs, master fingerprint data and policy metadata needed to
+display addresses or sign PSBTs for registered BitBox policies.
+
+## Bare React Native
+
+The native module uses Expo Modules API. A bare React Native app can use it, but
+it must install Expo Modules native support first:
+
+```sh
+npx install-expo-modules@latest
+npm install @bitcoinerlab/bitbox-react-native
+npx pod-install
+```
+
+If your app does not use Expo prebuild or config plugins, add the native entries
+manually:
+
+- iOS: `NSBluetoothAlwaysUsageDescription` in `Info.plist`.
+- Android: Bluetooth permissions, USB host feature, USB attached intent filter
+  and `@xml/bitbox_device_filter` metadata.
+
+The iOS pod currently requires deployment target `15.1` or newer.
+
+## Platform Status
+
+This package is still young. It is ready for integration testing, not for broad
+production use.
+
+- iOS BitBox Nova BLE: validated on physical iPhone plus BitBox Nova hardware.
+  Tested flows include connection, xpub/address reads, address display, multisig
+  and policy registration, PSBT signing and message signing.
+- Android USB: validated on physical Android hardware through the integration
+  app. Tested flows include connection, pairing, provider-client calls,
+  descriptor-backed wallet flows, PSBT signing and message signing.
+- Android BitBox Nova BLE: validated on physical Android hardware through the
+  integration app. Tested flows include connection, pairing, provider-client
+  calls, descriptor-backed wallet flows, PSBT signing and message signing.
+- Expo Go: not supported because custom native code is required.
 
 ## Native Implementation
 
-This repository includes an Expo Modules API native module for iOS and Android.
-The iOS module has CoreBluetooth transport wiring for BitBox Nova and uses the
-vendored gomobile framework at `ios/Frameworks/Bitboxnative.xcframework` for the
-BitBox protocol. The Android module has BLE/USB transport wiring, a native USB
-pairing-code confirmation dialog with app-private persisted Noise config, and
-uses the vendored gomobile AAR at `android/libs/bitboxnative-android.aar`. The
-separate `bitbox-rn-integration` dev-client app has
-validated the current iOS native method set on a physical iPhone plus BitBox
-Nova, including address display, sorted multisig registration/display, generic
-ordered multisig policy display/signing, PSBT signing, and message signing.
-Android BLE/USB still needs physical-device validation. The JavaScript resolver
-intentionally does not fall back to legacy `react-native` `NativeModules`.
+The package includes an Expo Modules API native module for iOS and Android.
+
+- iOS uses CoreBluetooth for BitBox Nova BLE and the vendored gomobile framework
+  at `ios/Frameworks/Bitboxnative.xcframework`.
+- Android uses BLE, USB Host, a native USB pairing-code dialog, app-private USB
+  Noise pairing storage and the vendored gomobile AAR at
+  `android/libs/bitboxnative-android.aar`.
+- The protocol layer is a small Go wrapper around `bitbox02-api-go` built with
+  `gomobile bind`.
 
 ## Development
 
 ```sh
 npm install
-npm run build
-npm run lint
+npm test
+npm run native:go:test
+npm run format:check
 ```
 
-Go and `gomobile` are developer-only requirements for contributors working on
-the native Go wrapper or regenerating mobile bindings. They should not be needed
-by normal app developers installing a published package. Any installation method
-is fine as long as `go` and `gomobile` are available on `PATH`.
+Go and `gomobile` are needed only by contributors who regenerate mobile bindings.
+Normal app developers should get prebuilt artifacts from the npm package.
 
-For simplicity, generated gomobile artifacts are committed and published in the
-npm package once they are useful. Normal app developers should get those
-prebuilt artifacts from npm. Advanced users can rebuild them with
-`npm run native:go:build -- <target>` and replace the committed artifacts if
-they need a custom build.
+To rebuild bindings locally:
 
-The API throws a clear error if the `BitcoinerlabBitBox` native module is
-missing or if an unwired platform method is called.
+```sh
+npm run native:go:build -- ios,iossimulator
+npm run native:go:build -- android
+```
+
+The API throws a clear error if the `BitcoinerlabBitBox` native module is missing
+or if an unsupported platform method is called.
