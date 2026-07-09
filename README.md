@@ -27,7 +27,7 @@ import {
 } from '@bitcoinerlab/descriptors/bitbox';
 
 const network = networks.bitcoin;
-// store: caches xpubs, fingerprint data and registered descriptor policies as JSON.
+// store: caches xpubs, fingerprint data and registered policies as JSON.
 const store = {}; // Or load a previously saved store.
 const client = await connectBitBoxNovaBle({ timeoutMs: 60_000 });
 
@@ -59,8 +59,8 @@ try {
   const vaultOutput = new Output({ descriptor, index: 0, network });
   const psbt = new Psbt({ network });
 
-  // Adds the vault output as a PSBT input. Save the returned finalizer:
-  // after the BitBox signs, it adds the witness data needed to finish this input.
+  // Adds the vault output as a PSBT input. Save the returned finalizer: after
+  // the BitBox signs, it adds the witness data needed to finish this input.
   const finalizeInput = vaultOutput.updatePsbtAsInput({
     psbt,
     txHex: await fetchPreviousTransactionHex(),
