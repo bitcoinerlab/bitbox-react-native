@@ -120,6 +120,18 @@ Write wallet templates as descriptor expressions and let
 App code can stay focused on descriptors. It does not need to know which BitBox
 API call is used for each script type.
 
+For address display and message signing, pass only the position fields needed by
+the descriptor:
+
+- Fixed descriptor, such as `wpkh(KEY/0/7)`: pass neither `change` nor `index`.
+- Ranged fixed-branch descriptor, such as `wpkh(KEY/0/*)`: pass `index` only.
+- Multipath ranged descriptor, such as `wpkh(KEY/**)` or
+  `wpkh(KEY/<0;1>/*)`: pass both `change` and `index`.
+
+The descriptors helpers derive the concrete BitBox path from the expanded
+descriptor and reject extra or missing position fields, so the device path cannot
+diverge from the descriptor supplied by the app.
+
 ## Install
 
 This package contains native code. It works in Expo development builds, EAS
