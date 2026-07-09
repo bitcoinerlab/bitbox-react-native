@@ -2,11 +2,12 @@
 
 This directory contains a tiny mobile-friendly wrapper around
 `bitbox02-api-go`. It is intentionally limited to the JavaScript
-`BitBoxNativeModule` contract in `src/types.ts`.
+`BitBoxNativeBridge` contract in `src/types.ts`.
 
 The wrapper contains session methods, conversion helpers, and a gomobile-friendly
 transport constructor. iOS supplies a CoreBluetooth read/write/close transport
-for the BitBox Nova BLE path. Android transport is not wired yet.
+for the BitBox Nova BLE path. Android supplies BLE and USB Host read/write/close
+transports.
 
 Use `gomobile bind` to produce:
 

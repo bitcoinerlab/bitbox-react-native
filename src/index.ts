@@ -1,9 +1,4 @@
-export {
-  connectBitBoxNovaBle,
-  connectBitBoxUsb,
-  ReactNativeBitBoxClient
-} from './client';
-export { getBitBoxNativeModule } from './nativeModule';
+export { connectBitBoxNovaBle, connectBitBoxUsb } from './client';
 export type {
   BitBoxApiNetwork,
   BitBoxClient,
@@ -11,13 +6,11 @@ export type {
   BitBoxFormatUnit,
   BitBoxKeypath,
   BitBoxMessageSignature,
-  BitBoxNativeModule,
   BitBoxReactNativeSession,
   BitBoxReactNativeTransport,
   BitBoxRegisterXPubType,
   BitBoxScriptConfig,
   BitBoxScriptConfigWithKeypath,
   BitBoxXPubType,
-  ConnectedBitBoxClient,
-  NativeBitBoxMessageSignature
+  ConnectedBitBoxClient
 } from './types';

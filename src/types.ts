@@ -56,7 +56,7 @@ export type BitBoxMessageSignature = {
   electrumSig65: Uint8Array;
 };
 
-export type NativeBitBoxMessageSignature = {
+export type NativeBridgeMessageSignature = {
   sig: number[] | Uint8Array;
   recid: number | string | bigint;
   electrumSig65: number[] | Uint8Array;
@@ -121,56 +121,62 @@ export type BitBoxConnectParams = {
   deviceId?: string;
 };
 
-/** Native Expo module surface used by the JavaScript client wrapper. */
-export type BitBoxNativeModule = {
-  /** Opens a BLE session, currently for BitBox Nova. */
-  connectBle(params: BitBoxConnectParams): Promise<BitBoxReactNativeSession>;
-  /** Opens a USB session. Android is the first supported USB platform. */
-  connectUsb(params: BitBoxConnectParams): Promise<BitBoxReactNativeSession>;
+/**
+ * Internal Expo native-module bridge.
+ *
+ * This is not the public BitBox client API. Complex BitBox request payloads are
+ * passed as JSON strings so the React Native bridge never has to convert nested
+ * app objects that may contain `undefined`.
+ */
+export type BitBoxNativeBridge = {
+  /** Opens a BLE session. Params are private bridge JSON, not public API. */
+  connectBle(paramsJSON: string): Promise<BitBoxReactNativeSession>;
+  /** Opens a USB session. Params are private bridge JSON, not public API. */
+  connectUsb(paramsJSON: string): Promise<BitBoxReactNativeSession>;
   disconnect(sessionId: string): Promise<void>;
   version(sessionId: string): Promise<string>;
   rootFingerprint(sessionId: string): Promise<string>;
   btcXpub(
     sessionId: string,
     apiNetwork: BitBoxApiNetwork,
-    keypath: BitBoxKeypath,
+    keypath: string,
     xpubType: BitBoxXPubType,
     display: boolean
   ): Promise<string>;
   btcAddress(
     sessionId: string,
     apiNetwork: BitBoxApiNetwork,
-    keypath: BitBoxKeypath,
-    scriptConfig: BitBoxScriptConfig,
+    keypath: string,
+    scriptConfigJSON: string,
     display: boolean
   ): Promise<string>;
   btcRegisterScriptConfig(
     sessionId: string,
     apiNetwork: BitBoxApiNetwork,
-    scriptConfig: BitBoxScriptConfig,
-    keypathAccount: BitBoxKeypath | undefined,
+    scriptConfigJSON: string,
+    keypathAccount: string,
     xpubType: BitBoxRegisterXPubType,
-    name?: string
+    name: string
   ): Promise<void>;
   btcIsScriptConfigRegistered(
     sessionId: string,
     apiNetwork: BitBoxApiNetwork,
-    scriptConfig: BitBoxScriptConfig,
-    keypathAccount?: BitBoxKeypath
+    scriptConfigJSON: string,
+    keypathAccount: string
   ): Promise<boolean>;
   btcSignPSBT(
     sessionId: string,
     apiNetwork: BitBoxApiNetwork,
     psbt: string,
-    forceScriptConfig: BitBoxScriptConfigWithKeypath | undefined,
+    forceScriptConfigJSON: string,
     formatUnit: BitBoxFormatUnit
   ): Promise<string>;
   btcSignMessage?(
     sessionId: string,
     apiNetwork: BitBoxApiNetwork,
-    scriptConfigWithKeypath: BitBoxScriptConfigWithKeypath,
+    scriptConfigWithKeypathJSON: string,
     message: number[]
-  ): Promise<NativeBitBoxMessageSignature>;
+  ): Promise<NativeBridgeMessageSignature>;
 };
 
 /** Connected raw BitBox provider client. */

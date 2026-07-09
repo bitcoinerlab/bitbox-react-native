@@ -19,7 +19,10 @@ structurally compatible.
   `btcXpub`, `btcAddress`, `btcRegisterScriptConfig`,
   `btcIsScriptConfigRegistered`, `btcSignPSBT`, and `btcSignMessage`, and have
   been validated on physical iPhone plus BitBox Nova hardware.
-- Android native methods still throw explicit not-implemented errors.
+- Android BLE and USB native methods are wired through Kotlin transports,
+  gomobile, and `bitbox02-api-go`; USB has a native app-side pairing-code dialog.
+  Approved USB Noise pairing state is persisted in app-private storage. Android
+  still needs physical-device validation.
 - Upstream BitBox API survey is documented in
   `docs/UPSTREAM_BITBOX_API_SURVEY.md`.
 - A tiny Go wrapper package exists under `native/go` and imports upstream
@@ -28,13 +31,16 @@ structurally compatible.
   `native/go/build/` directory.
 - A generated iOS gomobile xcframework is committed under
   `ios/Frameworks/Bitboxnative.xcframework`.
+- A generated Android gomobile AAR is committed under
+  `android/libs/bitboxnative-android.aar`.
 - Artifact strategy is to commit generated gomobile artifacts under platform
   package directories once they are useful, then ship them in npm releases.
 - Advanced users can rebuild those artifacts with `npm run native:go:build` and
   replace the committed copies for custom builds.
 - The Go wrapper exposes a gomobile-friendly mobile transport interface.
-- `app.plugin.js` adds `NSBluetoothAlwaysUsageDescription` for iOS BLE. It does
-  not add iOS background modes or Android permissions yet.
+- `app.plugin.js` adds `NSBluetoothAlwaysUsageDescription` for iOS BLE, Android
+  Bluetooth permissions/features, Android USB host feature, and the BitBox USB
+  attached intent filter metadata. It does not add iOS background modes.
 - Expo Modules autolinking is declared in `expo-module.config.json`.
 - `expo-module.config.json` must keep iOS `podspecPath` and `swiftModuleName`
   explicit because the podspec lives at the package root. Without those fields,
@@ -49,10 +55,10 @@ structurally compatible.
 - Bare React Native apps are acceptable hosts if they install/configure Expo
   Modules native infrastructure. A separate plain React Native
   TurboModule/codegen implementation does not exist yet.
-- Calling `connectBitBoxNovaBle(...)` or `connectBitBoxUsb(...)` fails
-  with a clear missing-native-module error if the native module is not linked.
-  On iOS, only the BLE helper is supported; on Android, both connect paths are
-  still placeholders until native transport code is implemented.
+- Calling `connectBitBoxNovaBle(...)` or `connectBitBoxUsb(...)` fails with a
+  clear missing-native-module error if the native module is not linked. On iOS,
+  only the BLE helper is supported. On Android, both explicit connect paths are
+  wired but still require real-device validation.
 - `src/types.ts` intentionally owns the native BitBox client contract. Do not
   import types from `@bitcoinerlab/descriptors` just for convenience; that would
   couple this package to descriptors and recreate dependency issues.
@@ -88,8 +94,12 @@ structurally compatible.
 ## Public Contract
 
 The JavaScript wrapper expects a React Native native module named
-`BitcoinerlabBitBox`. Its TypeScript shape is defined by `BitBoxNativeModule` in
-`src/types.ts`.
+`BitcoinerlabBitBox`. Its internal TypeScript shape is `BitBoxNativeBridge` in
+`src/types.ts`; do not export this native bridge as public package API.
+
+JS serializes complex BitBox request payloads to JSON before calling native code.
+This keeps Android parameter passing predictable because the React Native bridge
+does not have to convert nested objects that may contain `undefined`.
 
 The native module must manage device/session lifetime internally and return a
 session from `connectBle(...)` or `connectUsb(...)`:
@@ -183,7 +193,7 @@ points, module pin, and transport boundary.
 
 ## Official Source Pointers
 
-Study these upstream files before implementation:
+Relevant upstream source references:
 
 - iOS BLE transport:
   `BitBoxSwiss/bitbox-wallet-app/frontends/ios/BitBoxApp/BitBoxApp/Bluetooth.swift`
@@ -204,7 +214,7 @@ Study these upstream files before implementation:
 
 ## iOS BLE Notes
 
-Expected first target: BitBox Nova over CoreBluetooth.
+First target: BitBox Nova over CoreBluetooth.
 
 Known UUIDs from official `Bluetooth.swift`:
 
@@ -216,7 +226,7 @@ Known UUIDs from official `Bluetooth.swift`:
 The official product mapping includes `bb02p-btconly` for BitBox02 Nova
 BTC-only.
 
-Implementation expectations:
+Implementation shape:
 
 - Use Swift and CoreBluetooth.
 - Implement scan, connect, service discovery, characteristic discovery, write,
@@ -232,15 +242,14 @@ Do not try to make `bitbox-api` WASM work on iOS React Native.
 
 ## Android Transport Goal
 
-Android should support both USB and BLE so apps can choose the transport that
-fits the user's device and situation. Keep the public API explicit:
+Android supports both USB and BLE so apps can choose the transport that fits the
+user's device and situation. Keep the public API explicit:
 `connectBitBoxUsb(...)` for USB and `connectBitBoxNovaBle(...)` for BLE. USB is
 Android-only for now, but the public helper name is platform-neutral so future
 iOS USB support would not need a new app-facing API. Do not add automatic USB/BLE
 fallback inside this package.
 
-The first Android implementation can be split into USB and BLE milestones, but
-the end state should cover both on real hardware.
+Both Android paths are wired and must still be validated on real hardware.
 
 ## Android USB Notes
 
@@ -252,7 +261,7 @@ Known IDs from the official app:
 - vendor ID: `1003` / `0x03eb`
 - product ID: `9219` / `0x2403`
 
-Implementation expectations:
+Implemented shape:
 
 - Use Android USB Host APIs.
 - Add a device filter XML for the BitBox VID/PID.
@@ -267,7 +276,7 @@ Implementation expectations:
 Android BLE target: BitBox Nova. Reuse the iOS BLE UUIDs and flow, then
 validate on real Nova hardware.
 
-Implementation expectations:
+Implemented shape:
 
 - Add Android Bluetooth permissions according to the target SDK.
 - Use runtime permission requests for nearby devices on modern Android.
@@ -306,19 +315,18 @@ Pairing/config note:
 - The current `newMemoryConfig()` is acceptable for the iOS BLE path tested on
   physical hardware. It intentionally does not create package-owned
   storage without a defined storage key, reset UX, and transport requirement.
-- Add a persisted `firmware.ConfigInterface` only when implementing USB/app-side
-  pairing confirmation or after a BLE physical-device case proves it is needed.
+- Android USB uses a persisted `firmware.ConfigInterface` backed by an
+  app-private JSON file. Add broader reset/export UX only if a concrete app need
+  appears.
 
-## Expo Config Plugin Plan
+## Expo Config Plugin
 
-`app.plugin.js` currently adds `NSBluetoothAlwaysUsageDescription` for iOS BLE.
-As native transport support grows, it should add only the additional native
-configuration that is actually required:
+`app.plugin.js` currently adds only the native configuration required by the
+implemented transports:
 
 - iOS background mode only if the native implementation truly needs it.
-- Android USB host feature.
-- Android BitBox USB intent filter and device filter XML.
-- Android Bluetooth permissions for BLE support.
+- Android USB host feature, BitBox USB intent filter, and device filter XML.
+- Android Bluetooth permissions and BLE feature declaration for BLE support.
 - Any package-specific native module registration required by the chosen Expo
   Modules or React Native native-module setup.
 
@@ -359,7 +367,6 @@ parsing in native code unless absolutely necessary.
 1. Validate iOS with descriptors' `connectors.fromClient(...)`.
 2. Design persisted Noise pairing/config storage only when a non-BLE or explicit
    app-side pairing-confirmation requirement is concrete.
-3. Wire Android USB and BLE as explicit connect paths.
-4. Validate Android USB and BLE on real hardware.
-5. Validate Android with descriptors' `connectors.fromClient(...)` once Android
-   BTC methods are wired.
+3. Validate Android USB and BLE on real hardware.
+4. Validate Android with descriptors' `connectors.fromClient(...)`.
+5. Decide whether USB/app-side pairing confirmation needs persisted Noise config.

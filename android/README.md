@@ -1,12 +1,21 @@
-# Android Native Implementation Skeleton
+# Android Native Implementation
 
-This directory contains an Expo Modules API placeholder named
-`BitcoinerlabBitBox`. It is only native package wiring for now; every exported
-method throws a not-implemented error.
+This directory contains the Android Expo Modules API implementation for
+`BitcoinerlabBitBox`.
 
-The first practical Android target is USB Host support for classic BitBox02,
-mirroring the official BitBoxApp Java code. A second Android target can be BLE
-for BitBox Nova, mirroring the iOS BLE service and characteristics.
+Implemented transport paths:
+
+- `connectBle(...)`: Android BLE transport for BitBox Nova using the same service
+  and characteristic UUIDs as the iOS implementation.
+- `connectUsb(...)`: Android USB Host transport for BitBox devices matching the
+  BitBox VID/PID `1003:9219`.
+
+Both paths bridge raw HID-style reads/writes into the vendored gomobile AAR at
+`android/libs/bitboxnative-android.aar`. USB shows a native app-side pairing
+dialog for the BitBox Noise pairing code before confirming pairing in the Go
+firmware layer, and stores approved USB Noise pairing state in app-private
+storage for later reconnects. Android BLE/USB still needs real-device
+validation.
 
 Official Android source pointers:
 

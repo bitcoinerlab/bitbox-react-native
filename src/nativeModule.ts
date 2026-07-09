@@ -1,4 +1,4 @@
-import type { BitBoxNativeModule } from './types';
+import type { BitBoxNativeBridge } from './types';
 
 const MODULE_NAME = 'BitcoinerlabBitBox';
 
@@ -16,11 +16,11 @@ function nativeModuleMissingError(moduleName: string): Error {
 
 export function getBitBoxNativeModule(
   moduleName = MODULE_NAME
-): BitBoxNativeModule {
+): BitBoxNativeBridge {
   try {
     const expoModule =
       require('expo-modules-core').requireNativeModule?.(moduleName);
-    if (expoModule) return expoModule as BitBoxNativeModule;
+    if (expoModule) return expoModule as BitBoxNativeBridge;
   } catch (error) {
     void error;
   }

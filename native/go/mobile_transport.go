@@ -23,6 +23,14 @@ type MobileTransport interface {
 	Close() error
 }
 
+// MobilePairingConfirmation lets platform code show and confirm a BitBox Noise
+// pairing code. ShowPairingCode must return quickly; ConfirmPairingCode may
+// block until the user accepts or rejects the code in the app UI.
+type MobilePairingConfirmation interface {
+	ShowPairingCode(code string, deviceVerified bool) error
+	ConfirmPairingCode(code string) (bool, error)
+}
+
 type mobileTransportAdapter struct {
 	transport MobileTransport
 }
@@ -61,18 +69,51 @@ func (adapter *mobileTransportAdapter) Close() error {
 
 // NewClientWithMobileTransport creates and initializes a BitBox client using a
 // platform-provided transport. productString may be the BitBox USB product
-// string or the short BitBox Nova BLE product string.
+// string or the short BitBox Nova BLE product string. If productString and
+// versionString are empty, the firmware API infers them through OP_INFO during
+// initialization, which is suitable for modern USB devices.
 func NewClientWithMobileTransport(transport MobileTransport, productString string, versionString string, isBluetooth bool) (*Client, error) {
+	return newClientWithMobileTransport(transport, productString, versionString, isBluetooth, nil, nil)
+}
+
+// NewClientWithMobileTransportAndPairing creates a client and routes app-side
+// pairing confirmation through pairingConfirmation. This is required for USB,
+// where there is no secure OS transport pairing layer around the Noise channel.
+func NewClientWithMobileTransportAndPairing(transport MobileTransport, productString string, versionString string, isBluetooth bool, pairingConfirmation MobilePairingConfirmation) (*Client, error) {
+	return newClientWithMobileTransport(transport, productString, versionString, isBluetooth, pairingConfirmation, nil)
+}
+
+// NewClientWithMobileTransportAndPairingConfig creates a client with app-side
+// pairing confirmation and a persisted Noise config file.
+func NewClientWithMobileTransportAndPairingConfig(transport MobileTransport, productString string, versionString string, isBluetooth bool, pairingConfirmation MobilePairingConfirmation, configPath string) (*Client, error) {
+	config, err := newPersistentConfig(configPath)
+	if err != nil {
+		return nil, err
+	}
+	return newClientWithMobileTransport(transport, productString, versionString, isBluetooth, pairingConfirmation, config)
+}
+
+func newClientWithMobileTransport(transport MobileTransport, productString string, versionString string, isBluetooth bool, pairingConfirmation MobilePairingConfirmation, config firmware.ConfigInterface) (*Client, error) {
 	if transport == nil {
 		return nil, fmt.Errorf("transport is required")
 	}
-	product, err := mobileProduct(productString)
-	if err != nil {
-		return nil, err
+	var product *common.Product
+	var version *semver.SemVer
+	if strings.TrimSpace(productString) != "" || strings.TrimSpace(versionString) != "" {
+		parsedProduct, err := mobileProduct(productString)
+		if err != nil {
+			return nil, err
+		}
+		parsedVersion, err := semver.NewSemVerFromString(versionString)
+		if err != nil {
+			return nil, err
+		}
+		product = &parsedProduct
+		version = parsedVersion
 	}
-	version, err := semver.NewSemVerFromString(versionString)
-	if err != nil {
-		return nil, err
+
+	if config == nil {
+		config = newMemoryConfig()
 	}
 
 	communication := u2fhid.NewCommunication(&mobileTransportAdapter{transport: transport}, bitbox02FirmwareCommand)
@@ -82,18 +123,58 @@ func NewClientWithMobileTransport(transport MobileTransport, productString strin
 	// pairing confirmation is exposed.
 	device := firmware.NewDevice(
 		version,
-		&product,
-		newMemoryConfig(),
+		product,
+		config,
 		communication,
 		noopLogger{},
 		firmware.WithOptionalNoisePairingConfirmation(isBluetooth),
 	)
+	var pairingCallbackErr error
+	if pairingConfirmation != nil {
+		device.SetOnEvent(func(event firmware.Event, _ interface{}) {
+			if event != firmware.EventChannelHashChanged {
+				return
+			}
+			code, deviceVerified := device.ChannelHash()
+			if code == "" {
+				return
+			}
+			if err := pairingConfirmation.ShowPairingCode(code, deviceVerified); err != nil && pairingCallbackErr == nil {
+				pairingCallbackErr = err
+			}
+		})
+	}
 	if err := device.Init(); err != nil {
 		communication.Close()
 		return nil, err
 	}
+	if pairingCallbackErr != nil {
+		communication.Close()
+		return nil, pairingCallbackErr
+	}
 	if isBluetooth && device.Status() == firmware.StatusUnpaired {
 		device.ChannelHashVerify(true)
+	}
+	if !isBluetooth && device.Status() == firmware.StatusUnpaired {
+		if pairingConfirmation == nil {
+			communication.Close()
+			return nil, fmt.Errorf("BitBox app-side pairing confirmation is required")
+		}
+		code, _ := device.ChannelHash()
+		if code == "" {
+			communication.Close()
+			return nil, fmt.Errorf("BitBox pairing code is unavailable")
+		}
+		ok, err := pairingConfirmation.ConfirmPairingCode(code)
+		if err != nil {
+			communication.Close()
+			return nil, err
+		}
+		device.ChannelHashVerify(ok)
+		if !ok || device.Status() == firmware.StatusPairingFailed {
+			communication.Close()
+			return nil, fmt.Errorf("BitBox pairing was rejected")
+		}
 	}
 	return newClientWithDevice(device), nil
 }

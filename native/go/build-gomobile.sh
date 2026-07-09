@@ -7,6 +7,7 @@ PACKAGE=${BITBOX_GO_PACKAGE:-.}
 TARGET=${1:-iossimulator}
 JAVA_PACKAGE=${BITBOX_GO_JAVA_PACKAGE:-com.bitcoinerlab.bitboxreactnative.go}
 OBJC_PREFIX=${BITBOX_GO_OBJC_PREFIX:-BitcoinerlabBitBox}
+ANDROID_API=${BITBOX_GO_ANDROID_API:-23}
 
 usage() {
   cat <<EOF
@@ -24,6 +25,7 @@ Environment:
   BITBOX_GO_PACKAGE       Go package to bind (default: .)
   BITBOX_GO_JAVA_PACKAGE  Android Java package prefix
   BITBOX_GO_OBJC_PREFIX   Apple Objective-C prefix
+  BITBOX_GO_ANDROID_API   Android API level for gomobile bind (default: 23)
 EOF
 }
 
@@ -67,6 +69,7 @@ build_one() {
       rm -f "$output"
       gomobile bind \
         -target="$target" \
+        -androidapi="$ANDROID_API" \
         -javapkg="$JAVA_PACKAGE" \
         -o "$output" \
         "$PACKAGE"

@@ -4,8 +4,6 @@ import Foundation
 
 private let bitboxNativeModuleName = "BitcoinerlabBitBox"
 private let bitboxDefaultConnectTimeoutMs = 30_000
-private let bitboxHardenedOffset: UInt64 = 0x80000000
-private let bitboxMaxKeypathComponent: UInt64 = 0xffffffff
 
 private func bitboxTimeoutMs(from params: [String: Any]) -> Int {
   if let timeoutMs = params["timeoutMs"] as? Int {
@@ -96,82 +94,6 @@ private func bitboxCallString(_ call: (NSErrorPointer) -> String) throws -> Stri
   return result
 }
 
-private func bitboxKeypathString(_ keypath: Either<String, [Int]>) throws -> String {
-  if let keypathString: String = keypath.get() {
-    return keypathString
-  }
-  if let keypathComponents: [Int] = keypath.get() {
-    return try bitboxKeypathString(from: keypathComponents)
-  }
-  throw BitBoxNativeError(message: "BitBox keypath must be a string or number array")
-}
-
-private func bitboxOptionalKeypathString(_ keypath: Either<String, [Int]>?) throws -> String {
-  guard let keypath = keypath else {
-    return ""
-  }
-  return try bitboxKeypathString(keypath)
-}
-
-private func bitboxKeypathString(from components: [Int]) throws -> String {
-  if components.isEmpty {
-    return "m"
-  }
-  let parts = try components.map { component -> String in
-    guard component >= 0 else {
-      throw BitBoxNativeError(message: "BitBox keypath component must be non-negative")
-    }
-    return try bitboxKeypathComponentString(UInt64(component))
-  }
-  return "m/" + parts.joined(separator: "/")
-}
-
-private func bitboxKeypathString(from value: Any?) throws -> String? {
-  guard let value = value, !(value is NSNull) else {
-    return nil
-  }
-  if let keypathString = value as? String {
-    return keypathString
-  }
-  if let keypathComponents = value as? [Int] {
-    return try bitboxKeypathString(from: keypathComponents)
-  }
-  if let keypathComponents = value as? [Any] {
-    return try bitboxKeypathString(from: keypathComponents.map { try bitboxKeypathComponent($0) })
-  }
-  throw BitBoxNativeError(message: "BitBox keypath must be a string or number array")
-}
-
-private func bitboxKeypathComponent(_ value: Any) throws -> Int {
-  if let component = value as? Int {
-    return component
-  }
-  if let component = value as? NSNumber {
-    return try bitboxKeypathComponent(component.doubleValue)
-  }
-  if let component = value as? Double {
-    return try bitboxKeypathComponent(component)
-  }
-  throw BitBoxNativeError(message: "BitBox keypath component must be a number")
-}
-
-private func bitboxKeypathComponent(_ value: Double) throws -> Int {
-  guard value.isFinite, value.rounded() == value, value >= 0, value <= Double(bitboxMaxKeypathComponent) else {
-    throw BitBoxNativeError(message: "BitBox keypath component must be an unsigned 32-bit integer")
-  }
-  return Int(value)
-}
-
-private func bitboxKeypathComponentString(_ component: UInt64) throws -> String {
-  guard component <= bitboxMaxKeypathComponent else {
-    throw BitBoxNativeError(message: "BitBox keypath component must be an unsigned 32-bit integer")
-  }
-  if component >= bitboxHardenedOffset {
-    return "\(component - bitboxHardenedOffset)'"
-  }
-  return String(component)
-}
-
 private func bitboxBytes(_ bytes: [Int]) throws -> [UInt8] {
   try bytes.map { byte in
     guard byte >= 0, byte <= 255 else {
@@ -181,74 +103,13 @@ private func bitboxBytes(_ bytes: [Int]) throws -> [UInt8] {
   }
 }
 
-private func bitboxScriptConfigJSONString(_ scriptConfig: [String: Any]) throws -> String {
-  try bitboxJSONString(bitboxNormalizeScriptConfig(scriptConfig))
-}
-
-private func bitboxScriptConfigWithKeypathJSONString(_ value: [String: Any]?) throws -> String {
-  guard let value = value else {
-    return ""
+// JS sends connect params as JSON so the React Native bridge only receives a
+// string, never an object with nested undefined values.
+private func bitboxConnectParams(from paramsJSON: String) throws -> [String: Any] {
+  if paramsJSON.isEmpty {
+    return [:]
   }
-  guard let scriptConfig = value["scriptConfig"] as? [String: Any] else {
-    throw BitBoxNativeError(message: "forceScriptConfig.scriptConfig must be an object")
-  }
-  guard let keypath = try bitboxKeypathString(from: value["keypath"]) else {
-    throw BitBoxNativeError(message: "forceScriptConfig.keypath is required")
-  }
-  return try bitboxJSONString([
-    "scriptConfig": bitboxNormalizeScriptConfig(scriptConfig),
-    "keypath": keypath
-  ])
-}
-
-private func bitboxNormalizeScriptConfig(_ scriptConfig: [String: Any]) throws -> [String: Any] {
-  let simpleType = scriptConfig["simpleType"] as? String
-  let multisig = scriptConfig["multisig"] as? [String: Any]
-  let policy = scriptConfig["policy"] as? [String: Any]
-  let variantCount = [simpleType != nil, multisig != nil, policy != nil].filter { $0 }.count
-  guard variantCount == 1 else {
-    throw BitBoxNativeError(message: "scriptConfig must set exactly one variant")
-  }
-  if let simpleType = simpleType {
-    return ["simpleType": simpleType]
-  }
-  if let multisig = multisig {
-    return ["multisig": multisig]
-  }
-  if let policy = policy {
-    return ["policy": try bitboxNormalizePolicyScriptConfig(policy)]
-  }
-  throw BitBoxNativeError(message: "scriptConfig must set exactly one variant")
-}
-
-private func bitboxNormalizePolicyScriptConfig(_ policy: [String: Any]) throws -> [String: Any] {
-  guard let keys = policy["keys"] as? [Any] else {
-    return policy
-  }
-  var normalized = policy
-  normalized["keys"] = try keys.map { key -> [String: Any] in
-    guard var normalizedKey = key as? [String: Any] else {
-      throw BitBoxNativeError(message: "policy.keys entries must be objects")
-    }
-    if let keypath = try bitboxKeypathString(from: normalizedKey["keypath"]) {
-      normalizedKey["keypath"] = keypath
-    } else {
-      normalizedKey.removeValue(forKey: "keypath")
-    }
-    return normalizedKey
-  }
-  return normalized
-}
-
-private func bitboxJSONString(_ value: Any) throws -> String {
-  guard JSONSerialization.isValidJSONObject(value) else {
-    throw BitBoxNativeError(message: "BitBox value cannot be serialized to JSON")
-  }
-  let data = try JSONSerialization.data(withJSONObject: value, options: [])
-  guard let string = String(data: data, encoding: .utf8) else {
-    throw BitBoxNativeError(message: "BitBox JSON serialization failed")
-  }
-  return string
+  return try bitboxJSONObject(paramsJSON)
 }
 
 private func bitboxJSONObject(_ string: String) throws -> [String: Any] {
@@ -265,7 +126,8 @@ public class BitcoinerlabBitBoxModule: Module {
   public func definition() -> ModuleDefinition {
     Name(bitboxNativeModuleName)
 
-    AsyncFunction("connectBle") { (_ params: [String: Any]) throws -> [String: Any] in
+    AsyncFunction("connectBle") { (_ paramsJSON: String) throws -> [String: Any] in
+      let params = try bitboxConnectParams(from: paramsJSON)
       let transport = BitBoxBleTransport(timeoutMs: bitboxTimeoutMs(from: params))
       let productInfo = try transport.connect(deviceId: params["deviceId"] as? String)
       var goError: NSError?
@@ -296,8 +158,8 @@ public class BitcoinerlabBitBoxModule: Module {
       ]
     }
 
-    AsyncFunction("connectUsb") { (_ params: [String: Any]) throws -> [String: Any] in
-      _ = params
+    AsyncFunction("connectUsb") { (_ paramsJSON: String) throws -> [String: Any] in
+      _ = paramsJSON
       throw BitBoxNativeError(message: "USB is not supported on iOS yet; use connectBitBoxNovaBle")
     }
 
@@ -322,16 +184,15 @@ public class BitcoinerlabBitBoxModule: Module {
     AsyncFunction("btcXpub") { (
       _ sessionId: String,
       _ apiNetwork: String,
-      _ keypath: Either<String, [Int]>,
+      _ keypath: String,
       _ xpubType: String,
       _ display: Bool
     ) throws -> String in
       let client = try self.sessions.session(sessionId).client
-      let keypathString = try bitboxKeypathString(keypath)
       return try bitboxCallString { error in
         client.btcxPub(
           apiNetwork,
-          keypath: keypathString,
+          keypath: keypath,
           xpubType: xpubType,
           display: display,
           error: error
@@ -339,20 +200,20 @@ public class BitcoinerlabBitBoxModule: Module {
       }
     }
 
+    // BitBox script configs arrive as JSON made in JS. This keeps parameter
+    // passing predictable on both native platforms and matches the Go adapter.
     AsyncFunction("btcAddress") { (
       _ sessionId: String,
       _ apiNetwork: String,
-      _ keypath: Either<String, [Int]>,
-      _ scriptConfig: [String: Any],
+      _ keypath: String,
+      _ scriptConfigJSON: String,
       _ display: Bool
     ) throws -> String in
       let client = try self.sessions.session(sessionId).client
-      let keypathString = try bitboxKeypathString(keypath)
-      let scriptConfigJSON = try bitboxScriptConfigJSONString(scriptConfig)
       return try bitboxCallString { error in
         client.btcAddress(
           apiNetwork,
-          keypath: keypathString,
+          keypath: keypath,
           scriptConfigJSON: scriptConfigJSON,
           display: display,
           error: error
@@ -363,37 +224,33 @@ public class BitcoinerlabBitBoxModule: Module {
     AsyncFunction("btcRegisterScriptConfig") { (
       _ sessionId: String,
       _ apiNetwork: String,
-      _ scriptConfig: [String: Any],
-      _ keypathAccount: Either<String, [Int]>?,
+      _ scriptConfigJSON: String,
+      _ keypathAccount: String,
       _ xpubType: String,
-      _ name: String?
+      _ name: String
     ) throws in
       let client = try self.sessions.session(sessionId).client
-      let scriptConfigJSON = try bitboxScriptConfigJSONString(scriptConfig)
-      let keypathAccountString = try bitboxOptionalKeypathString(keypathAccount)
       try client.btcRegisterScriptConfig(
         apiNetwork,
         scriptConfigJSON: scriptConfigJSON,
-        keypathAccount: keypathAccountString,
+        keypathAccount: keypathAccount,
         xpubType: xpubType,
-        name: name ?? ""
+        name: name
       )
     }
 
     AsyncFunction("btcIsScriptConfigRegistered") { (
       _ sessionId: String,
       _ apiNetwork: String,
-      _ scriptConfig: [String: Any],
-      _ keypathAccount: Either<String, [Int]>?
+      _ scriptConfigJSON: String,
+      _ keypathAccount: String
     ) throws -> Bool in
       let client = try self.sessions.session(sessionId).client
-      let scriptConfigJSON = try bitboxScriptConfigJSONString(scriptConfig)
-      let keypathAccountString = try bitboxOptionalKeypathString(keypathAccount)
       var registered = ObjCBool(false)
       try client.btcIsScriptConfigRegistered(
         apiNetwork,
         scriptConfigJSON: scriptConfigJSON,
-        keypathAccount: keypathAccountString,
+        keypathAccount: keypathAccount,
         ret0_: &registered
       )
       return registered.boolValue
@@ -403,11 +260,10 @@ public class BitcoinerlabBitBoxModule: Module {
       _ sessionId: String,
       _ apiNetwork: String,
       _ psbt: String,
-      _ forceScriptConfig: [String: Any]?,
+      _ forceScriptConfigJSON: String,
       _ formatUnit: String
     ) throws -> String in
       let client = try self.sessions.session(sessionId).client
-      let forceScriptConfigJSON = try bitboxScriptConfigWithKeypathJSONString(forceScriptConfig)
       return try bitboxCallString { error in
         client.btcSignPSBT(
           apiNetwork,
@@ -422,11 +278,10 @@ public class BitcoinerlabBitBoxModule: Module {
     AsyncFunction("btcSignMessage") { (
       _ sessionId: String,
       _ apiNetwork: String,
-      _ scriptConfigWithKeypath: [String: Any],
+      _ scriptConfigWithKeypathJSON: String,
       _ message: [Int]
     ) throws -> [String: Any] in
       let client = try self.sessions.session(sessionId).client
-      let scriptConfigWithKeypathJSON = try bitboxScriptConfigWithKeypathJSONString(scriptConfigWithKeypath)
       let messageData = Data(try bitboxBytes(message))
       let resultJSON = try bitboxCallString { error in
         client.btcSignMessage(

@@ -199,14 +199,14 @@ Bluetooth pairing/bonding alone.
 ## Open Implementation Risks
 
 - A reproducible gomobile build script exists. The generated iOS artifact is
-  committed at `ios/Frameworks/Bitboxnative.xcframework`; Android artifact paths
-  are still pending.
+  committed at `ios/Frameworks/Bitboxnative.xcframework`; the generated Android
+  artifact is committed at `android/libs/bitboxnative-android.aar`.
 - The exact JS pairing UX still needs a small design pass for non-BLE or app-side
   pairing confirmation flows. The iOS BLE path auto-confirms app-side pairing
   after device-side confirmation, matching upstream Bluetooth guidance.
 - The current Go pairing config is in-memory. Persist it only after defining the
   exact non-BLE or explicit pairing UX requirement.
 - iOS BLE `connectBle`, `version`, `rootFingerprint`, `btcXpub`, `btcAddress`,
-  `btcRegisterScriptConfig`, `btcIsScriptConfigRegistered`, and `btcSignPSBT`
-  are validated on physical BitBox Nova hardware. Android BLE and Android USB
-  still need real-device validation.
+  `btcRegisterScriptConfig`, `btcIsScriptConfigRegistered`, `btcSignPSBT`, and
+  `btcSignMessage` are validated on physical BitBox Nova hardware. Android BLE
+  and Android USB are wired and still need real-device validation.
