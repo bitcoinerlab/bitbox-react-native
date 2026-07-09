@@ -9,8 +9,9 @@ wallet policy, Miniscript, PSBT creation and finalization.
 
 ## Quick Example
 
-This example connects to a BitBox, builds a single-key relative timelock
-descriptor, registers it on the device, signs a PSBT and finalizes the input.
+This example connects to a BitBox over BLE (Bluetooth), builds a single-key relative
+timelock descriptor, registers it on the device, signs a PSBT and finalizes the
+input.
 
 ```ts
 import { connectBitBoxNovaBle } from '@bitcoinerlab/bitbox-react-native';
@@ -26,8 +27,8 @@ import {
 } from '@bitcoinerlab/descriptors/bitbox';
 
 const network = networks.bitcoin;
-// Stores & caches xpubs, fingerprint data and policy metadata as JSON.
-const store = {};
+// store: caches xpubs, fingerprint data and registered descriptor policies as JSON.
+const store = {}; // Or load a previously saved store.
 const client = await connectBitBoxNovaBle({ timeoutMs: 60_000 });
 
 try {
@@ -39,13 +40,15 @@ try {
     keyPath: '/0/*'
   });
 
+  // Policy-language equivalent with @bitcoinerlab/miniscript-policies:
+  // const { miniscript } = compilePolicy('and(pk(@bitbox),older(5))');
+  // const descriptor = `wsh(${miniscript.replace('@bitbox', bitboxKey)})`;
   const descriptor = `wsh(and_v(v:pk(${bitboxKey}),older(5)))`;
 
-  await registerPolicy({
-    session,
-    descriptor,
-    name: '5-block vault'
-  });
+  await registerPolicy({ session, descriptor, name: '5-block vault' });
+
+  // session.store keeps track of registered policies and is JSON-serializable.
+  saveWalletStoreJSON(session.store);
 
   const receiveAddress = await displayAddress({
     session,
@@ -56,12 +59,15 @@ try {
   const vaultOutput = new Output({ descriptor, index: 0, network });
   const psbt = new Psbt({ network });
 
+  // Adds the vault output as a PSBT input. Save the returned finalizer:
+  // after the BitBox signs, it adds the witness data needed to finish this input.
   const finalizeInput = vaultOutput.updatePsbtAsInput({
     psbt,
     txHex: await fetchPreviousTransactionHex(),
     vout: 0
   });
 
+  // Adds the recipient output: where this transaction sends the bitcoin.
   new Output({
     descriptor: `addr(${await chooseRecipientAddress()})`,
     network
@@ -70,14 +76,12 @@ try {
   // The BitBox signs after the user confirms on the device.
   await signers.sign({ psbt, session });
 
-  // `updatePsbtAsInput(...)` returns the finalizer for this descriptor input.
+  // Call one finalizer per descriptor input AFTER signing.
   finalizeInput({ psbt });
 
   const transactionHex = psbt.extractTransaction().toHex();
   await broadcastTransaction(transactionHex);
 
-  // session.store keeps track of policies and is JSON-serializable.
-  saveWalletStoreJSON(session.store);
   console.log({ receiveAddress, transactionHex });
 } finally {
   await client.close();
@@ -96,6 +100,25 @@ const client = await connectBitBoxUsb({ timeoutMs: 60_000 });
 If the app asks you to confirm a pairing code, continue only when it matches the
 BitBox display. BLE pairing/bonding is handled by the operating system. USB
 Noise pairing approvals are stored in app-private storage for later reconnects.
+
+## Descriptor Expressions
+
+Write wallet templates as descriptor expressions and let
+`@bitcoinerlab/descriptors/bitbox` choose the right BitBox flow.
+
+- Standard single-key scripts use descriptors such as `wpkh(${keyExpression})`
+  or `tr(${keyExpression})`. They use the BitBox standard address and signing
+  flow and do not need policy registration.
+- Sorted multisig uses
+  `wsh(sortedmulti(2,${keyExpressionA},${keyExpressionB},${keyExpressionC}))`.
+  Register it with `registerPolicy(...)`; the BitBox helpers detect it and use
+  the device's specialized multisig registration flow internally.
+- Custom Miniscript policies use descriptors such as
+  `wsh(and_v(v:pk(${keyExpression}),older(5)))`. Register them with
+  `registerPolicy(...)` before address display or signing.
+
+App code can stay focused on descriptors. It does not need to know which BitBox
+API call is used for each script type.
 
 ## Install
 
@@ -154,8 +177,8 @@ import {
 ```
 
 - `connectBitBoxNovaBle(params?)`: connect to BitBox Nova over BLE.
-- `connectBitBoxUsb(params?)`: connect to a BitBox over USB. Android is supported
-  first. iOS USB is not implemented yet.
+- `connectBitBoxUsb(params?)`: connect to a BitBox over USB. Android is
+  supported. iOS USB is not supported.
 
 Both helpers return a connected Bitcoin-only provider client:
 
@@ -173,23 +196,23 @@ Most apps should not call those methods directly. Pass the client to
 `connectors.fromClient(...)` from `@bitcoinerlab/descriptors/bitbox` and use the
 descriptor helpers instead.
 
-The native module and its JSON bridge parameters are private implementation
-details. App code passes normal typed BitBox and descriptors objects.
+## Descriptors Store
 
-## Persist The Descriptors Store
-
-Do not persist a live `session` or `client`. Persist the descriptors `store`:
+Do not persist a live `session` or `client`. Keep the descriptors `store` in
+memory for the current session or save it if the app wants to reuse it in future
+sessions:
 
 ```ts
 const store = JSON.parse((await storage.getItem('bitbox-store')) ?? '{}');
 const session = connectors.fromClient({ client, network, store });
 
-// After registration, address display or signing:
+// If the app wants to reuse the cache in future sessions:
 await storage.setItem('bitbox-store', JSON.stringify(session.store));
 ```
 
-The store caches xpubs, master fingerprint data and policy metadata needed to
-display addresses or sign PSBTs for registered BitBox policies.
+The store caches xpubs, master fingerprint data and the descriptor policies the
+user has registered on the BitBox for each session. Whether that cache is
+temporary or permanent is an app decision.
 
 ## Bare React Native
 
@@ -213,8 +236,7 @@ The iOS pod currently requires deployment target `15.1` or newer.
 
 ## Platform Status
 
-This package is still young. It is ready for integration testing, not for broad
-production use.
+The supported BLE and USB flows have been validated on physical BitBox hardware.
 
 - iOS BitBox Nova BLE: validated on physical iPhone plus BitBox Nova hardware.
   Tested flows include connection, xpub/address reads, address display, multisig
