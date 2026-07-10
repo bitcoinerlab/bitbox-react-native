@@ -19,8 +19,10 @@ import android.os.ParcelUuid
 import com.bitcoinerlab.bitboxreactnative.go.bitboxnative.MobileTransport
 import java.io.ByteArrayOutputStream
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.max
 import kotlin.math.min
 import org.json.JSONObject
@@ -31,6 +33,63 @@ private val BITBOX_BLE_READER_UUID: UUID = UUID.fromString("419572a5-9f53-4eb1-8
 private val BITBOX_BLE_PRODUCT_UUID: UUID = UUID.fromString("9d1c9a77-8b03-4e49-8053-3955cda7da93")
 private val CLIENT_CHARACTERISTIC_CONFIG_UUID: UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
 private const val BITBOX_BLE_MAX_CHARACTERISTIC_LENGTH = 5 * 64
+
+private fun bitboxBluetoothAdapter(context: Context): BluetoothAdapter {
+  val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+    ?: throw BitBoxNativeException("Bluetooth manager is not available")
+  val adapter = bluetoothManager.adapter
+    ?: throw BitBoxNativeException("Bluetooth is not supported on this device")
+  if (!adapter.isEnabled) {
+    throw BitBoxNativeException("Bluetooth is powered off")
+  }
+  return adapter
+}
+
+@SuppressLint("MissingPermission")
+internal fun discoverBitBoxNovaBleDevices(
+  context: Context,
+  scanDurationMs: Int
+): List<Map<String, Any>> {
+  val scanner = bitboxBluetoothAdapter(context).bluetoothLeScanner
+    ?: throw BitBoxNativeException("Bluetooth LE scanner is not available")
+  val devices = ConcurrentHashMap<String, Map<String, Any>>()
+  val scanError = AtomicReference<BitBoxNativeException?>()
+  val scanFinished = CountDownLatch(1)
+  val callback = object : ScanCallback() {
+    override fun onScanResult(callbackType: Int, result: ScanResult) {
+      val device = result.device ?: return
+      val deviceId = device.address.uppercase()
+      val discovered = mutableMapOf<String, Any>(
+        "transport" to "ble",
+        "deviceId" to deviceId,
+        "rssi" to result.rssi
+      )
+      val name = result.scanRecord?.deviceName ?: device.name
+      if (!name.isNullOrBlank()) discovered["name"] = name
+      devices[deviceId] = discovered
+    }
+
+    override fun onScanFailed(errorCode: Int) {
+      scanError.set(BitBoxNativeException("Bluetooth LE scan failed with code $errorCode"))
+      scanFinished.countDown()
+    }
+  }
+  val filter = ScanFilter.Builder()
+    .setServiceUuid(ParcelUuid(BITBOX_BLE_SERVICE_UUID))
+    .build()
+  val settings = ScanSettings.Builder()
+    .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+    .build()
+
+  scanner.startScan(listOf(filter), settings, callback)
+  try {
+    scanFinished.await(scanDurationMs.toLong(), TimeUnit.MILLISECONDS)
+  } finally {
+    scanner.stopScan(callback)
+  }
+  scanError.get()?.let { throw it }
+  return devices.values.sortedBy { it["deviceId"] as String }
+}
 
 class BitBoxBleTransport(
   private val context: Context,
@@ -57,13 +116,7 @@ class BitBoxBleTransport(
 
   @SuppressLint("MissingPermission")
   fun connect(): BitBoxProductInfo {
-    val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
-      ?: throw BitBoxNativeException("Bluetooth manager is not available")
-    val adapter = bluetoothManager.adapter
-      ?: throw BitBoxNativeException("Bluetooth is not supported on this device")
-    if (!adapter.isEnabled) {
-      throw BitBoxNativeException("Bluetooth is powered off")
-    }
+    val adapter = bitboxBluetoothAdapter(context)
     scanner = adapter.bluetoothLeScanner
       ?: throw BitBoxNativeException("Bluetooth LE scanner is not available")
 

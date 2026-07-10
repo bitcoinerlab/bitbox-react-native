@@ -19,6 +19,13 @@ import java.util.concurrent.TimeUnit
 private const val BITBOX_USB_VENDOR_ID = 1003
 private const val BITBOX_USB_PRODUCT_ID = 9219
 
+internal fun attachedBitBoxUsbDevices(usbManager: UsbManager): List<UsbDevice> =
+  usbManager.deviceList.values
+    .filter { device ->
+      device.vendorId == BITBOX_USB_VENDOR_ID && device.productId == BITBOX_USB_PRODUCT_ID
+    }
+    .sortedBy { it.deviceName }
+
 class BitBoxUsbTransport(
   private val context: Context,
   private val timeoutMs: Int,
@@ -32,7 +39,9 @@ class BitBoxUsbTransport(
   fun connect(): BitBoxProductInfo {
     val usbManager = context.getSystemService(Context.USB_SERVICE) as? UsbManager
       ?: throw BitBoxNativeException("USB manager is not available")
-    val device = findBitBoxDevice(usbManager)
+    val device = attachedBitBoxUsbDevices(usbManager).firstOrNull { device ->
+      deviceId == null || device.deviceName.equals(deviceId, ignoreCase = true)
+    }
       ?: throw BitBoxNativeException("No BitBox USB device found")
     ensureUsbPermission(usbManager, device)
     val endpoints = findEndpoints(device)
@@ -51,13 +60,6 @@ class BitBoxUsbTransport(
       version = ""
     )
   }
-
-  private fun findBitBoxDevice(usbManager: UsbManager): UsbDevice? =
-    usbManager.deviceList.values.firstOrNull { device ->
-      device.vendorId == BITBOX_USB_VENDOR_ID &&
-        device.productId == BITBOX_USB_PRODUCT_ID &&
-        (deviceId == null || device.deviceName.equals(deviceId, ignoreCase = true))
-    }
 
   private fun ensureUsbPermission(usbManager: UsbManager, device: UsbDevice) {
     if (usbManager.hasPermission(device)) return

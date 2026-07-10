@@ -5,6 +5,8 @@ This directory contains the Android Expo Modules API implementation for
 
 Implemented transport paths:
 
+- `discoverBle(...)`: scan for nearby BitBox Nova devices without connecting.
+- `listUsb()`: list attached BitBox USB devices without requesting permission.
 - `connectBle(...)`: Android BLE transport for BitBox Nova using the same service
   and characteristic UUIDs as the iOS implementation.
 - `connectUsb(...)`: Android USB Host transport for BitBox devices matching the

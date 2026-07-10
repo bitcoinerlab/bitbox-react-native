@@ -97,6 +97,43 @@ import { connectBitBoxUsb } from '@bitcoinerlab/bitbox-react-native';
 const client = await connectBitBoxUsb({ timeoutMs: 60_000 });
 ```
 
+## Choose A Device
+
+Without a `deviceId`, a connection uses the first matching device. To let the
+user choose when several devices are available, list them first and pass the
+selected `deviceId` to the matching connection helper:
+
+```ts
+import {
+  connectBitBoxNovaBle,
+  discoverBitBoxNovaBleDevices
+} from '@bitcoinerlab/bitbox-react-native';
+
+const devices = await discoverBitBoxNovaBleDevices({
+  scanDurationMs: 5_000
+});
+const selected = await chooseDevice(devices);
+const client = await connectBitBoxNovaBle({ deviceId: selected.deviceId });
+```
+
+For USB on Android:
+
+```ts
+import {
+  connectBitBoxUsb,
+  listAttachedBitBoxUsbDevices
+} from '@bitcoinerlab/bitbox-react-native';
+
+const devices = await listAttachedBitBoxUsbDevices();
+const selected = await chooseDevice(devices);
+const client = await connectBitBoxUsb({ deviceId: selected.deviceId });
+```
+
+BLE discovery scans only for BitBox Nova devices. USB listing does not request
+permission or open a device; permission is requested when connecting. An Android
+USB `deviceId` identifies the current attachment and may change after reconnecting,
+so discover attached USB devices again instead of persisting that ID.
+
 If the app asks you to confirm a pairing code, continue only when it matches the
 BitBox display. BLE pairing/bonding is handled by the operating system. USB
 Noise pairing approvals are stored in app-private storage for later reconnects.
@@ -184,10 +221,14 @@ import { Buffer as BufferPolyfill } from 'buffer';
 ```ts
 import {
   connectBitBoxNovaBle,
-  connectBitBoxUsb
+  connectBitBoxUsb,
+  discoverBitBoxNovaBleDevices,
+  listAttachedBitBoxUsbDevices
 } from '@bitcoinerlab/bitbox-react-native';
 ```
 
+- `discoverBitBoxNovaBleDevices(params?)`: scan for nearby BitBox Nova devices.
+- `listAttachedBitBoxUsbDevices()`: list attached BitBox USB devices on Android.
 - `connectBitBoxNovaBle(params?)`: connect to BitBox Nova over BLE.
 - `connectBitBoxUsb(params?)`: connect to a BitBox over USB. Android is
   supported. iOS USB is not supported.

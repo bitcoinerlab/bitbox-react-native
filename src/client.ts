@@ -1,16 +1,19 @@
 import { getBitBoxNativeModule } from './nativeModule';
 import type {
   BitBoxApiNetwork,
+  BitBoxBleDiscoveryParams,
   BitBoxConnectParams,
   BitBoxFormatUnit,
   BitBoxKeypath,
   BitBoxMessageSignature,
   BitBoxNativeBridge,
+  BitBoxNovaBleDevice,
   BitBoxReactNativeSession,
   BitBoxRegisterXPubType,
   BitBoxScriptConfig,
   BitBoxScriptConfigWithKeypath,
   BitBoxXPubType,
+  BitBoxUsbDevice,
   ConnectedBitBoxClient
 } from './types';
 
@@ -206,6 +209,13 @@ export async function connectBitBoxNovaBle(
   return new ReactNativeBitBoxClient({ nativeModule, session });
 }
 
+/** Scans for nearby BitBox Nova devices over Bluetooth. */
+export function discoverBitBoxNovaBleDevices(
+  params: BitBoxBleDiscoveryParams = {}
+): Promise<BitBoxNovaBleDevice[]> {
+  return getBitBoxNativeModule().discoverBle(bridgeJSON(params));
+}
+
 /** Connects to a BitBox over USB. Android is the first supported USB platform. */
 export async function connectBitBoxUsb(
   params: BitBoxConnectParams = {}
@@ -213,4 +223,9 @@ export async function connectBitBoxUsb(
   const nativeModule = getBitBoxNativeModule();
   const session = await nativeModule.connectUsb(bridgeJSON(params));
   return new ReactNativeBitBoxClient({ nativeModule, session });
+}
+
+/** Lists BitBox USB devices currently attached to the Android device. */
+export function listAttachedBitBoxUsbDevices(): Promise<BitBoxUsbDevice[]> {
+  return getBitBoxNativeModule().listUsb();
 }

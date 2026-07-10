@@ -46,6 +46,27 @@ function call(calls: NativeCall[], name: string): NativeCall {
 
 function createNativeModule(calls: NativeCall[]): BitBoxNativeBridge {
   return {
+    discoverBle: async (paramsJSON: string) => {
+      record(calls, 'discoverBle', [paramsJSON]);
+      return [
+        {
+          transport: 'ble',
+          deviceId: 'ble-device',
+          name: 'BitBox Nova',
+          rssi: -40
+        }
+      ];
+    },
+    listUsb: async () => {
+      record(calls, 'listUsb', []);
+      return [
+        {
+          transport: 'usb',
+          deviceId: '/dev/bus/usb/001/002',
+          product: 'BitBox02 Nova'
+        }
+      ];
+    },
     connectBle: async (paramsJSON: string) => {
       record(calls, 'connectBle', [paramsJSON]);
       return { id: 'session', transport: 'ble' };
@@ -195,6 +216,8 @@ export async function smokeNativeBoundary(): Promise<void> {
     }
   } as unknown as BitBoxScriptConfig;
 
+  await smokeNativeModule.discoverBle('{"scanDurationMs":5000}');
+  await smokeNativeModule.listUsb();
   await smokeNativeModule.connectBle('{"timeoutMs":60000}');
   await smokeNativeModule.connectUsb('{"deviceId":"bitbox"}');
   await client.btcXpub(
@@ -226,6 +249,11 @@ export async function smokeNativeBoundary(): Promise<void> {
     Uint8Array.from([1, 2, 3])
   );
 
+  assert(
+    call(calls, 'discoverBle').args[0] === '{"scanDurationMs":5000}',
+    'discoverBle params must be JSON'
+  );
+  assert(call(calls, 'listUsb').args.length === 0, 'listUsb takes no params');
   assert(
     call(calls, 'connectBle').args[0] === '{"timeoutMs":60000}',
     'connectBle params must be JSON'

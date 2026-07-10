@@ -117,8 +117,26 @@ export type BitBoxReactNativeSession = {
 export type BitBoxConnectParams = {
   /** Native connection timeout in milliseconds. */
   timeoutMs?: number;
-  /** Optional platform device identifier, such as a BLE peripheral id. */
+  /** Optional identifier returned by the corresponding device listing API. */
   deviceId?: string;
+};
+
+export type BitBoxBleDiscoveryParams = {
+  /** BLE scan duration in milliseconds. Defaults to 5 seconds. */
+  scanDurationMs?: number;
+};
+
+export type BitBoxNovaBleDevice = {
+  transport: 'ble';
+  deviceId: string;
+  name?: string;
+  rssi?: number;
+};
+
+export type BitBoxUsbDevice = {
+  transport: 'usb';
+  deviceId: string;
+  product?: string;
 };
 
 /**
@@ -129,6 +147,10 @@ export type BitBoxConnectParams = {
  * app objects that may contain `undefined`.
  */
 export type BitBoxNativeBridge = {
+  /** Scans for BitBox Nova BLE devices. Params are private bridge JSON. */
+  discoverBle(paramsJSON: string): Promise<BitBoxNovaBleDevice[]>;
+  /** Lists attached BitBox USB devices. */
+  listUsb(): Promise<BitBoxUsbDevice[]>;
   /** Opens a BLE session. Params are private bridge JSON, not public API. */
   connectBle(paramsJSON: string): Promise<BitBoxReactNativeSession>;
   /** Opens a USB session. Params are private bridge JSON, not public API. */

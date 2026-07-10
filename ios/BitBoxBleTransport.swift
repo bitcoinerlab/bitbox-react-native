@@ -26,6 +26,97 @@ struct BitBoxBleProductInfo: Decodable {
   }
 }
 
+final class BitBoxBleDiscovery: NSObject, CBCentralManagerDelegate {
+  private let queue = DispatchQueue(label: "com.bitcoinerlab.bitboxreactnative.ble.discovery")
+  private let bluetoothReady = DispatchSemaphore(value: 0)
+  private let scanFinished = DispatchSemaphore(value: 0)
+  private let availabilityTimeoutMs: Int
+
+  private var centralManager: CBCentralManager?
+  private var devices: [String: [String: Any]] = [:]
+  private var discoveryError: Error?
+
+  init(timeoutMs: Int) {
+    availabilityTimeoutMs = max(timeoutMs, 1)
+    super.init()
+  }
+
+  func discover(scanDurationMs: Int) throws -> [[String: Any]] {
+    queue.sync {
+      centralManager = CBCentralManager(delegate: self, queue: queue)
+    }
+    if bluetoothReady.wait(
+      timeout: .now() + .milliseconds(availabilityTimeoutMs)
+    ) == .timedOut {
+      throw BitBoxNativeError(message: "Timed out waiting for Bluetooth to become available")
+    }
+    if let error = queue.sync(execute: { discoveryError }) {
+      throw error
+    }
+
+    queue.sync {
+      centralManager?.scanForPeripherals(withServices: [bitboxBleServiceUUID], options: nil)
+    }
+    _ = scanFinished.wait(timeout: .now() + .milliseconds(max(scanDurationMs, 1)))
+    queue.sync {
+      centralManager?.stopScan()
+    }
+    if let error = queue.sync(execute: { discoveryError }) {
+      throw error
+    }
+    return queue.sync {
+      devices.values.sorted {
+        ($0["deviceId"] as? String ?? "") < ($1["deviceId"] as? String ?? "")
+      }
+    }
+  }
+
+  func centralManagerDidUpdateState(_ central: CBCentralManager) {
+    switch central.state {
+    case .poweredOn:
+      bluetoothReady.signal()
+    case .unauthorized:
+      fail("Bluetooth permission was denied")
+    case .poweredOff:
+      fail("Bluetooth is powered off")
+    case .unsupported:
+      fail("Bluetooth is not supported on this device")
+    case .resetting, .unknown:
+      break
+    @unknown default:
+      fail("Bluetooth entered an unknown state")
+    }
+  }
+
+  func centralManager(
+    _ central: CBCentralManager,
+    didDiscover peripheral: CBPeripheral,
+    advertisementData: [String: Any],
+    rssi RSSI: NSNumber
+  ) {
+    _ = central
+    let deviceId = peripheral.identifier.uuidString.uppercased()
+    var device: [String: Any] = [
+      "transport": "ble",
+      "deviceId": deviceId,
+      "rssi": RSSI.intValue
+    ]
+    let name = advertisementData[CBAdvertisementDataLocalNameKey] as? String ?? peripheral.name
+    if let name = name, !name.isEmpty {
+      device["name"] = name
+    }
+    devices[deviceId] = device
+  }
+
+  private func fail(_ message: String) {
+    if discoveryError == nil {
+      discoveryError = BitBoxNativeError(message: message)
+    }
+    bluetoothReady.signal()
+    scanFinished.signal()
+  }
+}
+
 final class BitBoxBleTransport: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate,
   BitcoinerlabBitBoxBitboxnativeMobileTransportProtocol
 {

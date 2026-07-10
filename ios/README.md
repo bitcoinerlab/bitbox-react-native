@@ -5,6 +5,7 @@ This directory contains the Expo Modules API implementation named
 
 Current status:
 
+- BitBox Nova BLE discovery returns matching peripherals without connecting.
 - CoreBluetooth scan/connect/discover/read/write/close is wired for BitBox Nova
   BLE.
 - `connect`, `disconnect`, `version`, `rootFingerprint`, `btcXpub`,

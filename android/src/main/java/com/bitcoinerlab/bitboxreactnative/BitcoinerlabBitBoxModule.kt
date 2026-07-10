@@ -1,6 +1,7 @@
 package com.bitcoinerlab.bitboxreactnative
 
 import android.Manifest
+import android.hardware.usb.UsbManager
 import android.os.Build
 import com.bitcoinerlab.bitboxreactnative.go.bitboxnative.Bitboxnative
 import com.bitcoinerlab.bitboxreactnative.go.bitboxnative.Client
@@ -21,6 +22,7 @@ import org.json.JSONObject
 
 private const val BITBOX_NATIVE_MODULE_NAME = "BitcoinerlabBitBox"
 private const val BITBOX_DEFAULT_CONNECT_TIMEOUT_MS = 30_000
+private const val BITBOX_DEFAULT_SCAN_DURATION_MS = 5_000
 
 class BitBoxNativeException(message: String, cause: Throwable? = null) :
   CodedException(message, cause)
@@ -69,11 +71,15 @@ private class BitBoxSessionStore {
   }
 }
 
-private fun bitboxTimeoutMs(params: Map<String, Any?>): Int {
-  val timeoutMs = params["timeoutMs"]
-  return when (timeoutMs) {
-    is Number -> timeoutMs.toInt()
-    else -> BITBOX_DEFAULT_CONNECT_TIMEOUT_MS
+private fun bitboxPositiveInt(
+  params: Map<String, Any?>,
+  name: String,
+  defaultValue: Int
+): Int {
+  val value = params[name]
+  return when (value) {
+    is Number -> value.toInt()
+    else -> defaultValue
   }.coerceAtLeast(1)
 }
 
@@ -162,9 +168,37 @@ class BitcoinerlabBitBoxModule : Module() {
   override fun definition() = ModuleDefinition {
     Name(BITBOX_NATIVE_MODULE_NAME)
 
+    AsyncFunction("discoverBle") { paramsJSON: String ->
+      val params = bitboxConnectParams(paramsJSON)
+      ensureBlePermissions(this@BitcoinerlabBitBoxModule, BITBOX_DEFAULT_CONNECT_TIMEOUT_MS)
+      val context = appContext.reactContext
+        ?: throw BitBoxNativeException("React context is not available")
+      discoverBitBoxNovaBleDevices(
+        context,
+        bitboxPositiveInt(params, "scanDurationMs", BITBOX_DEFAULT_SCAN_DURATION_MS)
+      )
+    }
+
+    AsyncFunction("listUsb") {
+      val context = appContext.reactContext
+        ?: throw BitBoxNativeException("React context is not available")
+      val usbManager = context.getSystemService(android.content.Context.USB_SERVICE) as? UsbManager
+        ?: throw BitBoxNativeException("USB manager is not available")
+      attachedBitBoxUsbDevices(usbManager).map { device ->
+        mutableMapOf<String, Any>(
+          "transport" to "usb",
+          "deviceId" to device.deviceName
+        ).apply {
+          runCatching { device.productName }.getOrNull()?.let { product ->
+            if (product.isNotBlank()) put("product", product)
+          }
+        }
+      }
+    }
+
     AsyncFunction("connectBle") { paramsJSON: String ->
       val params = bitboxConnectParams(paramsJSON)
-      val timeoutMs = bitboxTimeoutMs(params)
+      val timeoutMs = bitboxPositiveInt(params, "timeoutMs", BITBOX_DEFAULT_CONNECT_TIMEOUT_MS)
       ensureBlePermissions(this@BitcoinerlabBitBoxModule, timeoutMs)
       val context = appContext.reactContext
         ?: throw BitBoxNativeException("React context is not available")
@@ -207,7 +241,7 @@ class BitcoinerlabBitBoxModule : Module() {
 
     AsyncFunction("connectUsb") { paramsJSON: String ->
       val params = bitboxConnectParams(paramsJSON)
-      val timeoutMs = bitboxTimeoutMs(params)
+      val timeoutMs = bitboxPositiveInt(params, "timeoutMs", BITBOX_DEFAULT_CONNECT_TIMEOUT_MS)
       val activity = appContext.throwingActivity
       val context = appContext.reactContext
         ?: throw BitBoxNativeException("React context is not available")

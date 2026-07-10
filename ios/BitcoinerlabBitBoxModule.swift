@@ -4,18 +4,23 @@ import Foundation
 
 private let bitboxNativeModuleName = "BitcoinerlabBitBox"
 private let bitboxDefaultConnectTimeoutMs = 30_000
+private let bitboxDefaultScanDurationMs = 5_000
 
-private func bitboxTimeoutMs(from params: [String: Any]) -> Int {
-  if let timeoutMs = params["timeoutMs"] as? Int {
-    return timeoutMs
+private func bitboxPositiveInt(
+  _ name: String,
+  from params: [String: Any],
+  defaultValue: Int
+) -> Int {
+  if let value = params[name] as? Int {
+    return max(value, 1)
   }
-  if let timeoutMs = params["timeoutMs"] as? Double {
-    return Int(timeoutMs)
+  if let value = params[name] as? Double {
+    return max(Int(value), 1)
   }
-  if let timeoutMs = params["timeoutMs"] as? NSNumber {
-    return timeoutMs.intValue
+  if let value = params[name] as? NSNumber {
+    return max(value.intValue, 1)
   }
-  return bitboxDefaultConnectTimeoutMs
+  return defaultValue
 }
 
 private final class BitBoxSession {
@@ -126,9 +131,30 @@ public class BitcoinerlabBitBoxModule: Module {
   public func definition() -> ModuleDefinition {
     Name(bitboxNativeModuleName)
 
+    AsyncFunction("discoverBle") { (_ paramsJSON: String) throws -> [[String: Any]] in
+      let params = try bitboxConnectParams(from: paramsJSON)
+      return try BitBoxBleDiscovery(timeoutMs: bitboxDefaultConnectTimeoutMs).discover(
+        scanDurationMs: bitboxPositiveInt(
+          "scanDurationMs",
+          from: params,
+          defaultValue: bitboxDefaultScanDurationMs
+        )
+      )
+    }
+
+    AsyncFunction("listUsb") { () throws -> [[String: Any]] in
+      throw BitBoxNativeError(message: "USB is not supported on iOS")
+    }
+
     AsyncFunction("connectBle") { (_ paramsJSON: String) throws -> [String: Any] in
       let params = try bitboxConnectParams(from: paramsJSON)
-      let transport = BitBoxBleTransport(timeoutMs: bitboxTimeoutMs(from: params))
+      let transport = BitBoxBleTransport(
+        timeoutMs: bitboxPositiveInt(
+          "timeoutMs",
+          from: params,
+          defaultValue: bitboxDefaultConnectTimeoutMs
+        )
+      )
       let productInfo = try transport.connect(deviceId: params["deviceId"] as? String)
       var goError: NSError?
       guard
@@ -160,7 +186,7 @@ public class BitcoinerlabBitBoxModule: Module {
 
     AsyncFunction("connectUsb") { (_ paramsJSON: String) throws -> [String: Any] in
       _ = paramsJSON
-      throw BitBoxNativeError(message: "USB is not supported on iOS yet; use connectBitBoxNovaBle")
+      throw BitBoxNativeError(message: "USB is not supported on iOS; use connectBitBoxNovaBle")
     }
 
     AsyncFunction("disconnect") { (_ sessionId: String) throws in
