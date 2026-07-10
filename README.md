@@ -1,11 +1,11 @@
 ﻿# @bitcoinerlab/bitbox-react-native
 
-Use a BitBox from a React Native app, then pass it to
-`@bitcoinerlab/descriptors` to build descriptors, show addresses, register
-policies and sign PSBTs.
+Use this package as the native BitBox driver for `@bitcoinerlab/descriptors` to
+build descriptors, show addresses, register policies and sign PSBTs.
 
-This package provides the mobile transport layer. Descriptors stays in charge of
-wallet policy, Miniscript, PSBT creation and finalization.
+This package provides the mobile transport and provider client. Descriptors
+opens the connection through the driver and stays in charge of wallet policy,
+Miniscript, PSBT creation and finalization.
 
 ## Quick Example
 
@@ -14,7 +14,6 @@ timelock descriptor, registers it on the device, signs a PSBT and finalizes the
 input.
 
 ```ts
-import { connectBitBoxNovaBle } from '@bitcoinerlab/bitbox-react-native';
 // This example uses the bitcoinjs-lib preset. If you prefer @scure/btc-signer
 // and noble/scure types, use @bitcoinerlab/descriptors-scure instead.
 import { networks, Output, Psbt } from '@bitcoinerlab/descriptors';
@@ -29,11 +28,18 @@ import {
 const network = networks.bitcoin;
 // store: caches xpubs, fingerprint data and registered policies as JSON.
 const store = {}; // Or load a previously saved store.
-const client = await connectBitBoxNovaBle({ timeoutMs: 60_000 });
+
+const session = await connectors.connect({
+  driver: {
+    module: import('@bitcoinerlab/bitbox-react-native'),
+    mode: 'ble',
+    timeoutMs: 60_000
+  },
+  network,
+  store
+});
 
 try {
-  const session = connectors.fromClient({ client, network, store });
-
   const bitboxKey = await keyExpression({
     session,
     originPath: "/48'/0'/0'/2'",
@@ -84,49 +90,59 @@ try {
 
   console.log({ receiveAddress, transactionHex });
 } finally {
-  await client.close();
+  await session.close();
 }
 ```
 
-For USB on Android, use the same descriptors code and change only the connection
-helper:
+For USB on Android, use the same descriptors code and change only the driver
+mode:
 
 ```ts
-import { connectBitBoxUsb } from '@bitcoinerlab/bitbox-react-native';
-
-const client = await connectBitBoxUsb({ timeoutMs: 60_000 });
+const session = await connectors.connect({
+  driver: {
+    module: import('@bitcoinerlab/bitbox-react-native'),
+    mode: 'usb',
+    timeoutMs: 60_000
+  },
+  network,
+  store
+});
 ```
 
 ## Choose A Device
 
-Without a `deviceId`, a connection uses the first matching device. To let the
+Without a selected device, the driver connects to the first match. To let the
 user choose when several devices are available, list them first and pass the
-selected `deviceId` to the matching connection helper:
+selected record as `driver.device`:
 
 ```ts
-import {
-  connectBitBoxNovaBle,
-  discoverBitBoxNovaBleDevices
-} from '@bitcoinerlab/bitbox-react-native';
+const driver = await import('@bitcoinerlab/bitbox-react-native');
 
-const devices = await discoverBitBoxNovaBleDevices({
+const devices = await driver.discoverBitBoxNovaBleDevices({
   scanDurationMs: 5_000
 });
-const selected = await chooseDevice(devices);
-const client = await connectBitBoxNovaBle({ deviceId: selected.deviceId });
+const device = await chooseDevice(devices);
+
+const session = await connectors.connect({
+  driver: { module: driver, mode: 'ble', device },
+  network,
+  store
+});
 ```
 
 For USB on Android:
 
 ```ts
-import {
-  connectBitBoxUsb,
-  listAttachedBitBoxUsbDevices
-} from '@bitcoinerlab/bitbox-react-native';
+const driver = await import('@bitcoinerlab/bitbox-react-native');
 
-const devices = await listAttachedBitBoxUsbDevices();
-const selected = await chooseDevice(devices);
-const client = await connectBitBoxUsb({ deviceId: selected.deviceId });
+const devices = await driver.listAttachedBitBoxUsbDevices();
+const device = await chooseDevice(devices);
+
+const session = await connectors.connect({
+  driver: { module: driver, mode: 'usb', device },
+  network,
+  store
+});
 ```
 
 BLE discovery scans only for BitBox Nova devices. USB listing does not request
@@ -137,6 +153,8 @@ so discover attached USB devices again instead of persisting that ID.
 If the app asks you to confirm a pairing code, continue only when it matches the
 BitBox display. BLE pairing/bonding is handled by the operating system. USB
 Noise pairing approvals are stored in app-private storage for later reconnects.
+The React Native driver does not use descriptors' `onPairingCode` callback; that
+callback belongs to the browser and BitBoxBridge `bitbox-api` flow.
 
 ## Descriptor Expressions
 
@@ -216,7 +234,7 @@ import { Buffer as BufferPolyfill } from 'buffer';
 ).Buffer ??= BufferPolyfill;
 ```
 
-## Public API
+## Driver API
 
 ```ts
 import {
@@ -233,7 +251,9 @@ import {
 - `connectBitBoxUsb(params?)`: connect to a BitBox over USB. Android is
   supported. iOS USB is not supported.
 
-Both helpers return a connected Bitcoin-only provider client:
+Descriptors calls the connection helpers when this package is supplied as
+`driver.module`. Apps can also call them directly; both return a connected
+Bitcoin-only provider client:
 
 - `version()`
 - `rootFingerprint()`
@@ -245,9 +265,10 @@ Both helpers return a connected Bitcoin-only provider client:
 - `btcSignMessage(...)`
 - `close()`
 
-Most apps should not call those methods directly. Pass the client to
-`connectors.fromClient(...)` from `@bitcoinerlab/descriptors/bitbox` and use the
-descriptor helpers instead.
+With the recommended `connectors.connect(...)` flow, the session owns the client;
+call `session.close()` when finished. If the app calls a connection helper
+directly, pass that client to `connectors.fromClient(...)`. The app then owns the
+client and must call `client.close()` itself.
 
 ## Descriptors Store
 
@@ -257,10 +278,20 @@ sessions:
 
 ```ts
 const store = JSON.parse((await storage.getItem('bitbox-store')) ?? '{}');
-const session = connectors.fromClient({ client, network, store });
+const session = await connectors.connect({
+  driver: {
+    module: import('@bitcoinerlab/bitbox-react-native'),
+    mode: 'ble'
+  },
+  network,
+  store
+});
 
 // If the app wants to reuse the cache in future sessions:
 await storage.setItem('bitbox-store', JSON.stringify(session.store));
+
+// When finished:
+await session.close();
 ```
 
 The store caches xpubs, master fingerprint data and the descriptor policies the
