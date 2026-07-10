@@ -121,7 +121,7 @@ Notes:
 
 The JS contract mirrors the raw `bitbox-api` provider-client boundary for
 Bitcoin methods. Descriptors computes and passes the xpub arguments internally
-when a mobile client is injected with `connectors.fromClient(...)`:
+when this package is supplied as the driver to `bitbox.connect(...)`:
 
 - `btcXpub`: `xpub` on mainnet, `tpub` on non-mainnet networks.
 - `btcRegisterScriptConfig`: `autoXpubTpub`.

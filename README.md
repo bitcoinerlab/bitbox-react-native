@@ -17,19 +17,13 @@ input.
 // This example uses the bitcoinjs-lib preset. If you prefer @scure/btc-signer
 // and noble/scure types, use @bitcoinerlab/descriptors-scure instead.
 import { networks, Output, Psbt } from '@bitcoinerlab/descriptors';
-import {
-  connectors,
-  displayAddress,
-  keyExpression,
-  registerPolicy,
-  signers
-} from '@bitcoinerlab/descriptors/bitbox';
+import * as bitbox from '@bitcoinerlab/descriptors/bitbox';
 
 const network = networks.bitcoin;
 // store: caches xpubs, fingerprint data and registered policies as JSON.
 const store = {}; // Or load a previously saved store.
 
-const session = await connectors.connect({
+const session = await bitbox.connect({
   driver: {
     module: import('@bitcoinerlab/bitbox-react-native'),
     mode: 'ble',
@@ -40,7 +34,7 @@ const session = await connectors.connect({
 });
 
 try {
-  const bitboxKey = await keyExpression({
+  const bitboxKey = await bitbox.keyExpression({
     session,
     originPath: "/48'/0'/0'/2'",
     keyPath: '/0/*'
@@ -51,12 +45,16 @@ try {
   // const descriptor = `wsh(${miniscript.replace('@bitbox', bitboxKey)})`;
   const descriptor = `wsh(and_v(v:pk(${bitboxKey}),older(5)))`;
 
-  await registerPolicy({ session, descriptor, name: '5-block vault' });
+  await bitbox.registerPolicy({
+    session,
+    descriptor,
+    name: '5-block vault'
+  });
 
   // session.store keeps track of registered policies and is JSON-serializable.
   saveWalletStoreJSON(session.store);
 
-  const receiveAddress = await displayAddress({
+  const receiveAddress = await bitbox.displayAddress({
     session,
     descriptor,
     index: 0
@@ -80,7 +78,7 @@ try {
   }).updatePsbtAsOutput({ psbt, value: 90_000n });
 
   // The BitBox signs after the user confirms on the device.
-  await signers.sign({ psbt, session });
+  await bitbox.signers.sign({ psbt, session });
 
   // Call one finalizer per descriptor input AFTER signing.
   finalizeInput({ psbt });
@@ -98,7 +96,7 @@ For USB on Android, use the same descriptors code and change only the driver
 mode:
 
 ```ts
-const session = await connectors.connect({
+const session = await bitbox.connect({
   driver: {
     module: import('@bitcoinerlab/bitbox-react-native'),
     mode: 'usb',
@@ -123,7 +121,7 @@ const devices = await driver.discoverBitBoxNovaBleDevices({
 });
 const device = await chooseDevice(devices);
 
-const session = await connectors.connect({
+const session = await bitbox.connect({
   driver: { module: driver, mode: 'ble', device },
   network,
   store
@@ -138,7 +136,7 @@ const driver = await import('@bitcoinerlab/bitbox-react-native');
 const devices = await driver.listAttachedBitBoxUsbDevices();
 const device = await chooseDevice(devices);
 
-const session = await connectors.connect({
+const session = await bitbox.connect({
   driver: { module: driver, mode: 'usb', device },
   network,
   store
@@ -252,8 +250,8 @@ import {
   supported. iOS USB is not supported.
 
 Descriptors calls the connection helpers when this package is supplied as
-`driver.module`. Apps can also call them directly; both return a connected
-Bitcoin-only provider client:
+`driver.module` to `bitbox.connect(...)`. Apps can also call them directly to use
+the raw connected Bitcoin-only provider client:
 
 - `version()`
 - `rootFingerprint()`
@@ -265,10 +263,9 @@ Bitcoin-only provider client:
 - `btcSignMessage(...)`
 - `close()`
 
-With the recommended `connectors.connect(...)` flow, the session owns the client;
-call `session.close()` when finished. If the app calls a connection helper
-directly, pass that client to `connectors.fromClient(...)`. The app then owns the
-client and must call `client.close()` itself.
+With the recommended `bitbox.connect(...)` flow, the session owns the client and
+`session.close()` closes it. If the app calls a connection helper directly, the
+app owns the returned client and must call `client.close()` itself.
 
 ## Descriptors Store
 
@@ -278,7 +275,7 @@ sessions:
 
 ```ts
 const store = JSON.parse((await storage.getItem('bitbox-store')) ?? '{}');
-const session = await connectors.connect({
+const session = await bitbox.connect({
   driver: {
     module: import('@bitcoinerlab/bitbox-react-native'),
     mode: 'ble'

@@ -140,8 +140,8 @@ exposed to application code removes the session argument and provides this raw
 
 Do not ask application code to pass BitBox vendor `coin` values.
 
-Descriptors computes and passes the raw BitBox xpub arguments internally when a
-mobile client is injected with `connectors.fromClient(...)`:
+Descriptors computes and passes the raw BitBox xpub arguments internally when
+this package is supplied as the driver to `bitbox.connect(...)`:
 
 - `btcXpub`: `xpub` on mainnet, `tpub` on non-mainnet networks.
 - `btcRegisterScriptConfig`: `autoXpubTpub`.
@@ -149,26 +149,22 @@ mobile client is injected with `connectors.fromClient(...)`:
 ## Descriptors Integration
 
 Consuming apps that use `@bitcoinerlab/descriptors` can install descriptors
-separately and inject the connected native provider client:
+separately and supply this package as its native BitBox driver:
 
 ```ts
-import { connectBitBoxNovaBle } from '@bitcoinerlab/bitbox-react-native';
-import {
-  connectors,
-  keyExpression,
-  registerPolicy,
-  signers
-} from '@bitcoinerlab/descriptors/bitbox';
+import * as bitbox from '@bitcoinerlab/descriptors/bitbox';
 
-const client = await connectBitBoxNovaBle();
 const store = {};
-const session = connectors.fromClient({
-  client,
+const session = await bitbox.connect({
+  driver: {
+    module: import('@bitcoinerlab/bitbox-react-native'),
+    mode: 'ble'
+  },
   network,
   store
 });
 
-const key = await keyExpression({
+const key = await bitbox.keyExpression({
   session,
   originPath: "/84'/0'/0'",
   keyPath: '/0/*'
@@ -176,7 +172,7 @@ const key = await keyExpression({
 // Build descriptors and pass them to registerPolicy/displayAddress/signers.
 // Persist JSON.stringify(store) or JSON.stringify(session.store), not session.
 
-await client.close();
+await session.close();
 ```
 
 Keep `@bitcoinerlab/descriptors` transport-free and device-agnostic.
@@ -355,8 +351,8 @@ Add tests in phases:
   validated through the integration app.
 - Manual Android BitBox Nova BLE integration test on real hardware. Current
   status: validated through the integration app.
-- Manual descriptors integration test that uses `connectors.fromClient(...)` to
-  derive xpubs, register/display a wallet, and sign a PSBT.
+- Manual descriptors integration test that uses `bitbox.connect(...)` to derive
+  xpubs, register/display a wallet, and sign a PSBT.
 
 Real-device tests should not run in normal CI.
 
