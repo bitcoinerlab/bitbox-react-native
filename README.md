@@ -114,15 +114,15 @@ user choose when several devices are available, list them first and pass the
 selected record as `driver.device`:
 
 ```ts
-const driver = await import('@bitcoinerlab/bitbox-react-native');
+import * as driverModule from '@bitcoinerlab/bitbox-react-native';
 
-const devices = await driver.discoverBitBoxNovaBleDevices({
+const devices = await driverModule.discoverBitBoxNovaBleDevices({
   scanDurationMs: 5_000
 });
 const device = await chooseDevice(devices);
 
 const session = await bitbox.connect({
-  driver: { module: driver, mode: 'ble', device },
+  driver: { module: driverModule, mode: 'ble', device },
   network,
   store
 });
@@ -131,13 +131,13 @@ const session = await bitbox.connect({
 For USB on Android:
 
 ```ts
-const driver = await import('@bitcoinerlab/bitbox-react-native');
+import * as driverModule from '@bitcoinerlab/bitbox-react-native';
 
-const devices = await driver.listAttachedBitBoxUsbDevices();
+const devices = await driverModule.listAttachedBitBoxUsbDevices();
 const device = await chooseDevice(devices);
 
 const session = await bitbox.connect({
-  driver: { module: driver, mode: 'usb', device },
+  driver: { module: driverModule, mode: 'usb', device },
   network,
   store
 });
