@@ -1,4 +1,5 @@
 node_modules/
+ai/
 dist/
 coverage/
 *.tgz
