@@ -63,6 +63,15 @@ func (client *Client) Version() (string, error) {
 	return device.Version().String(), nil
 }
 
+// Product returns the canonical upstream BitBox product identifier.
+func (client *Client) Product() (string, error) {
+	device, err := client.deviceOrError()
+	if err != nil {
+		return "", err
+	}
+	return string(device.Product()), nil
+}
+
 // RootFingerprint returns the connected device root fingerprint as lowercase hex.
 func (client *Client) RootFingerprint() (string, error) {
 	device, err := client.deviceOrError()

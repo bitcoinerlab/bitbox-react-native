@@ -107,7 +107,7 @@ class BitBoxBleTransport(
   @Volatile private var readerReady = false
   @Volatile private var closed = false
   @Volatile private var connectionError: Throwable? = null
-  @Volatile private var productInfo: BitBoxProductInfo? = null
+  @Volatile private var productInfo: BitBoxBleConnectionInfo? = null
   @Volatile private var maxWriteLength = 20
 
   private var readBuffer = ByteArray(0)
@@ -115,7 +115,7 @@ class BitBoxBleTransport(
   private var pendingWriteError: Throwable? = null
 
   @SuppressLint("MissingPermission")
-  fun connect(): BitBoxProductInfo {
+  fun connect(): BitBoxBleConnectionInfo {
     val adapter = bitboxBluetoothAdapter(context)
     scanner = adapter.bluetoothLeScanner
       ?: throw BitBoxNativeException("Bluetooth LE scanner is not available")
@@ -370,7 +370,7 @@ class BitBoxBleTransport(
         if (value.isEmpty()) return
         try {
           val json = JSONObject(String(value, Charsets.UTF_8))
-          productInfo = BitBoxProductInfo(
+          productInfo = BitBoxBleConnectionInfo(
             product = json.getString("p"),
             version = json.getString("v")
           )

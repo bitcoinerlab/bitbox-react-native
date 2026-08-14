@@ -115,10 +115,18 @@ session from `connectBle(...)` or `connectUsb(...)`:
 type BitBoxReactNativeSession = {
   id: string;
   transport: 'ble' | 'usb';
-  product?: string;
-  version?: string;
+  product:
+    | 'bitbox02-multi'
+    | 'bitbox02-btconly'
+    | 'bitbox02-plus-multi'
+    | 'bitbox02-plus-btconly';
+  version: string;
 };
 ```
+
+Connected product and version metadata come from the initialized Go firmware
+device on every transport. Discovery names remain optional OS-provided labels;
+do not use USB descriptor names or invented fallbacks as connected product IDs.
 
 Every native device method receives the `sessionId` first. The wrapped client
 exposed to application code removes the session argument and provides this raw

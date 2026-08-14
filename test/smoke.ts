@@ -63,17 +63,27 @@ function createNativeModule(calls: NativeCall[]): BitBoxNativeBridge {
         {
           transport: 'usb',
           deviceId: '/dev/bus/usb/001/002',
-          product: 'BitBox02 Nova'
+          name: 'BitBox02 Nova'
         }
       ];
     },
     connectBle: async (paramsJSON: string) => {
       record(calls, 'connectBle', [paramsJSON]);
-      return { id: 'session', transport: 'ble' };
+      return {
+        id: 'session',
+        transport: 'ble',
+        product: 'bitbox02-plus-btconly',
+        version: '9.26.1'
+      };
     },
     connectUsb: async (paramsJSON: string) => {
       record(calls, 'connectUsb', [paramsJSON]);
-      return { id: 'session', transport: 'usb' };
+      return {
+        id: 'session',
+        transport: 'usb',
+        product: 'bitbox02-plus-btconly',
+        version: '9.26.1'
+      };
     },
     disconnect: async (sessionId: string) => {
       record(calls, 'disconnect', [sessionId]);
@@ -188,7 +198,12 @@ const nativeModule = createNativeModule(nativeCalls);
 export const connectedClient: ConnectedBitBoxClient =
   new ReactNativeBitBoxClient({
     nativeModule,
-    session: { id: 'session', transport: 'ble' }
+    session: {
+      id: 'session',
+      transport: 'ble',
+      product: 'bitbox02-plus-btconly',
+      version: '9.26.1'
+    }
   });
 
 export async function smokeNativeBoundary(): Promise<void> {
@@ -196,7 +211,12 @@ export async function smokeNativeBoundary(): Promise<void> {
   const smokeNativeModule = createNativeModule(calls);
   const client = new ReactNativeBitBoxClient({
     nativeModule: smokeNativeModule,
-    session: { id: 'session', transport: 'ble' }
+    session: {
+      id: 'session',
+      transport: 'ble',
+      product: 'bitbox02-plus-btconly',
+      version: '9.26.1'
+    }
   });
   const scriptConfig = {
     policy: {
@@ -217,8 +237,8 @@ export async function smokeNativeBoundary(): Promise<void> {
   } as unknown as BitBoxScriptConfig;
 
   await smokeNativeModule.discoverBle('{"scanDurationMs":5000}');
-  await smokeNativeModule.listUsb();
-  await smokeNativeModule.connectBle('{"timeoutMs":60000}');
+  const usbDevices = await smokeNativeModule.listUsb();
+  const bleSession = await smokeNativeModule.connectBle('{"timeoutMs":60000}');
   await smokeNativeModule.connectUsb('{"deviceId":"bitbox"}');
   await client.btcXpub(
     'btc',
@@ -254,6 +274,15 @@ export async function smokeNativeBoundary(): Promise<void> {
     'discoverBle params must be JSON'
   );
   assert(call(calls, 'listUsb').args.length === 0, 'listUsb takes no params');
+  assert(
+    usbDevices[0]?.name === 'BitBox02 Nova' && !('product' in usbDevices[0]),
+    'USB discovery exposes only an optional transport name'
+  );
+  assert(
+    bleSession.product === 'bitbox02-plus-btconly' &&
+      bleSession.version === '9.26.1',
+    'connected sessions expose canonical product and firmware version'
+  );
   assert(
     call(calls, 'connectBle').args[0] === '{"timeoutMs":60000}',
     'connectBle params must be JSON'

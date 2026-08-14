@@ -12,8 +12,15 @@
 
 
 @class BitcoinerlabBitBoxBitboxnativeClient;
+@protocol BitcoinerlabBitBoxBitboxnativeMobilePairingConfirmation;
+@class BitcoinerlabBitBoxBitboxnativeMobilePairingConfirmation;
 @protocol BitcoinerlabBitBoxBitboxnativeMobileTransport;
 @class BitcoinerlabBitBoxBitboxnativeMobileTransport;
+
+@protocol BitcoinerlabBitBoxBitboxnativeMobilePairingConfirmation <NSObject>
+- (BOOL)confirmPairingCode:(NSString* _Nullable)code ret0_:(BOOL* _Nullable)ret0_ error:(NSError* _Nullable* _Nullable)error;
+- (BOOL)showPairingCode:(NSString* _Nullable)code deviceVerified:(BOOL)deviceVerified error:(NSError* _Nullable* _Nullable)error;
+@end
 
 @protocol BitcoinerlabBitBoxBitboxnativeMobileTransport <NSObject>
 - (BOOL)close:(NSError* _Nullable* _Nullable)error;
@@ -37,9 +44,22 @@ use NewClientWithMobileTransport once it has opened a real transport.
 /**
  * NewClientWithMobileTransport creates and initializes a BitBox client using a
 platform-provided transport. productString may be the BitBox USB product
-string or the short BitBox Nova BLE product string.
+string or the short BitBox Nova BLE product string. If productString and
+versionString are empty, the firmware API infers them through OP_INFO during
+initialization, which is suitable for modern USB devices.
  */
 - (nullable instancetype)initWithMobileTransport:(id<BitcoinerlabBitBoxBitboxnativeMobileTransport> _Nullable)transport productString:(NSString* _Nullable)productString versionString:(NSString* _Nullable)versionString isBluetooth:(BOOL)isBluetooth;
+/**
+ * NewClientWithMobileTransportAndPairing creates a client and routes app-side
+pairing confirmation through pairingConfirmation. This is required for USB,
+where there is no secure OS transport pairing layer around the Noise channel.
+ */
+- (nullable instancetype)initWithMobileTransportAndPairing:(id<BitcoinerlabBitBoxBitboxnativeMobileTransport> _Nullable)transport productString:(NSString* _Nullable)productString versionString:(NSString* _Nullable)versionString isBluetooth:(BOOL)isBluetooth pairingConfirmation:(id<BitcoinerlabBitBoxBitboxnativeMobilePairingConfirmation> _Nullable)pairingConfirmation;
+/**
+ * NewClientWithMobileTransportAndPairingConfig creates a client with app-side
+pairing confirmation and a persisted Noise config file.
+ */
+- (nullable instancetype)initWithMobileTransportAndPairingConfig:(id<BitcoinerlabBitBoxBitboxnativeMobileTransport> _Nullable)transport productString:(NSString* _Nullable)productString versionString:(NSString* _Nullable)versionString isBluetooth:(BOOL)isBluetooth pairingConfirmation:(id<BitcoinerlabBitBoxBitboxnativeMobilePairingConfirmation> _Nullable)pairingConfirmation configPath:(NSString* _Nullable)configPath;
 /**
  * BTCAddress delegates address retrieval/display to upstream bitbox02-api-go.
  */
@@ -69,6 +89,10 @@ string or the short BitBox Nova BLE product string.
  */
 - (void)close;
 /**
+ * Product returns the canonical upstream BitBox product identifier.
+ */
+- (NSString* _Nonnull)product:(NSError* _Nullable* _Nullable)error;
+/**
  * RootFingerprint returns the connected device root fingerprint as lowercase hex.
  */
 - (NSString* _Nonnull)rootFingerprint:(NSError* _Nullable* _Nullable)error;
@@ -87,11 +111,42 @@ FOUNDATION_EXPORT BitcoinerlabBitBoxBitboxnativeClient* _Nullable BitcoinerlabBi
 /**
  * NewClientWithMobileTransport creates and initializes a BitBox client using a
 platform-provided transport. productString may be the BitBox USB product
-string or the short BitBox Nova BLE product string.
+string or the short BitBox Nova BLE product string. If productString and
+versionString are empty, the firmware API infers them through OP_INFO during
+initialization, which is suitable for modern USB devices.
  */
 FOUNDATION_EXPORT BitcoinerlabBitBoxBitboxnativeClient* _Nullable BitcoinerlabBitBoxBitboxnativeNewClientWithMobileTransport(id<BitcoinerlabBitBoxBitboxnativeMobileTransport> _Nullable transport, NSString* _Nullable productString, NSString* _Nullable versionString, BOOL isBluetooth, NSError* _Nullable* _Nullable error);
 
+/**
+ * NewClientWithMobileTransportAndPairing creates a client and routes app-side
+pairing confirmation through pairingConfirmation. This is required for USB,
+where there is no secure OS transport pairing layer around the Noise channel.
+ */
+FOUNDATION_EXPORT BitcoinerlabBitBoxBitboxnativeClient* _Nullable BitcoinerlabBitBoxBitboxnativeNewClientWithMobileTransportAndPairing(id<BitcoinerlabBitBoxBitboxnativeMobileTransport> _Nullable transport, NSString* _Nullable productString, NSString* _Nullable versionString, BOOL isBluetooth, id<BitcoinerlabBitBoxBitboxnativeMobilePairingConfirmation> _Nullable pairingConfirmation, NSError* _Nullable* _Nullable error);
+
+/**
+ * NewClientWithMobileTransportAndPairingConfig creates a client with app-side
+pairing confirmation and a persisted Noise config file.
+ */
+FOUNDATION_EXPORT BitcoinerlabBitBoxBitboxnativeClient* _Nullable BitcoinerlabBitBoxBitboxnativeNewClientWithMobileTransportAndPairingConfig(id<BitcoinerlabBitBoxBitboxnativeMobileTransport> _Nullable transport, NSString* _Nullable productString, NSString* _Nullable versionString, BOOL isBluetooth, id<BitcoinerlabBitBoxBitboxnativeMobilePairingConfirmation> _Nullable pairingConfirmation, NSString* _Nullable configPath, NSError* _Nullable* _Nullable error);
+
+@class BitcoinerlabBitBoxBitboxnativeMobilePairingConfirmation;
+
 @class BitcoinerlabBitBoxBitboxnativeMobileTransport;
+
+/**
+ * MobilePairingConfirmation lets platform code show and confirm a BitBox Noise
+pairing code. ShowPairingCode must return quickly; ConfirmPairingCode may
+block until the user accepts or rejects the code in the app UI.
+ */
+@interface BitcoinerlabBitBoxBitboxnativeMobilePairingConfirmation : NSObject <goSeqRefInterface, BitcoinerlabBitBoxBitboxnativeMobilePairingConfirmation> {
+}
+@property(strong, readonly) _Nonnull id _ref;
+
+- (nonnull instancetype)initWithRef:(_Nonnull id)ref;
+- (BOOL)confirmPairingCode:(NSString* _Nullable)code ret0_:(BOOL* _Nullable)ret0_ error:(NSError* _Nullable* _Nullable)error;
+- (BOOL)showPairingCode:(NSString* _Nullable)code deviceVerified:(BOOL)deviceVerified error:(NSError* _Nullable* _Nullable)error;
+@end
 
 /**
  * MobileTransport is implemented by platform native code and provides raw U2F

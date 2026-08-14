@@ -36,7 +36,7 @@ class BitBoxUsbTransport(
   private var endpointIn: UsbEndpoint? = null
   private var endpointOut: UsbEndpoint? = null
 
-  fun connect(): BitBoxProductInfo {
+  fun connect() {
     val usbManager = context.getSystemService(Context.USB_SERVICE) as? UsbManager
       ?: throw BitBoxNativeException("USB manager is not available")
     val device = attachedBitBoxUsbDevices(usbManager).firstOrNull { device ->
@@ -55,10 +55,6 @@ class BitBoxUsbTransport(
     usbInterface = endpoints.usbInterface
     endpointIn = endpoints.endpointIn
     endpointOut = endpoints.endpointOut
-    return BitBoxProductInfo(
-      product = device.productName ?: "BitBox",
-      version = ""
-    )
   }
 
   private fun ensureUsbPermission(usbManager: UsbManager, device: UsbDevice) {

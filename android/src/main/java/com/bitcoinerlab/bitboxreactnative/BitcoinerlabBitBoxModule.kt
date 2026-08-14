@@ -27,7 +27,7 @@ private const val BITBOX_DEFAULT_SCAN_DURATION_MS = 5_000
 class BitBoxNativeException(message: String, cause: Throwable? = null) :
   CodedException(message, cause)
 
-data class BitBoxProductInfo(val product: String, val version: String)
+data class BitBoxBleConnectionInfo(val product: String, val version: String)
 
 private data class BitBoxSession(
   val id: String,
@@ -189,8 +189,8 @@ class BitcoinerlabBitBoxModule : Module() {
           "transport" to "usb",
           "deviceId" to device.deviceName
         ).apply {
-          runCatching { device.productName }.getOrNull()?.let { product ->
-            if (product.isNotBlank()) put("product", product)
+          runCatching { device.productName }.getOrNull()?.let { name ->
+            if (name.isNotBlank()) put("name", name)
           }
         }
       }
@@ -207,7 +207,7 @@ class BitcoinerlabBitBoxModule : Module() {
         timeoutMs = timeoutMs,
         deviceId = params["deviceId"] as? String
       )
-      val productInfo = try {
+      val connectionInfo = try {
         transport.connect()
       } catch (error: Throwable) {
         try { transport.close() } catch (_: Throwable) {}
@@ -216,8 +216,8 @@ class BitcoinerlabBitBoxModule : Module() {
       val client = try {
         Bitboxnative.newClientWithMobileTransport(
           transport,
-          productInfo.product,
-          productInfo.version,
+          connectionInfo.product,
+          connectionInfo.version,
           true
         )
       } catch (error: Throwable) {
@@ -228,8 +228,8 @@ class BitcoinerlabBitBoxModule : Module() {
         transportName = "ble",
         transport = transport,
         client = client,
-        product = productInfo.product,
-        version = productInfo.version
+        product = client.product(),
+        version = client.version()
       )
       mapOf(
         "id" to session.id,
@@ -250,7 +250,7 @@ class BitcoinerlabBitBoxModule : Module() {
         timeoutMs = timeoutMs,
         deviceId = params["deviceId"] as? String
       )
-      val productInfo = try {
+      try {
         transport.connect()
       } catch (error: Throwable) {
         try { transport.close() } catch (_: Throwable) {}
@@ -274,7 +274,7 @@ class BitcoinerlabBitBoxModule : Module() {
         transportName = "usb",
         transport = transport,
         client = client,
-        product = productInfo.product,
+        product = client.product(),
         version = version
       )
       mapOf(

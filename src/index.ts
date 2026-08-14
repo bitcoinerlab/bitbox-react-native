@@ -13,6 +13,7 @@ export type {
   BitBoxKeypath,
   BitBoxMessageSignature,
   BitBoxNovaBleDevice,
+  BitBoxProduct,
   BitBoxReactNativeSession,
   BitBoxReactNativeTransport,
   BitBoxRegisterXPubType,

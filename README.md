@@ -146,7 +146,8 @@ const session = await bitbox.connect({
 BLE discovery scans only for BitBox Nova devices. USB listing does not request
 permission or open a device; permission is requested when connecting. An Android
 USB `deviceId` identifies the current attachment and may change after reconnecting,
-so discover attached USB devices again instead of persisting that ID.
+so discover attached USB devices again instead of persisting that ID. Discovery
+`name` values are optional labels reported by the operating system.
 
 If the app asks you to confirm a pairing code, continue only when it matches the
 BitBox display. BLE pairing/bonding is handled by the operating system. USB
@@ -266,6 +267,12 @@ the raw connected Bitcoin-only provider client:
 With the recommended `bitbox.connect(...)` flow, the session owns the client and
 `session.close()` closes it. If the app calls a connection helper directly, the
 app owns the returned client and must call `client.close()` itself.
+
+Every connected client has `client.session.product`, using the canonical upstream
+BitBox product identifier, and `client.session.version`, using the firmware
+version. Product identifiers are `bitbox02-multi`, `bitbox02-btconly`,
+`bitbox02-plus-multi` or `bitbox02-plus-btconly`; upstream uses `plus` for the
+Nova platform.
 
 ## Descriptors Store
 

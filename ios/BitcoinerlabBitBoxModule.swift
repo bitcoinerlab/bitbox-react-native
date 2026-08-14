@@ -170,11 +170,18 @@ public class BitcoinerlabBitBoxModule: Module {
         throw goError ?? BitBoxNativeError(message: "Failed to initialize BitBox Nova BLE session")
       }
 
+      let product = try bitboxCallString { error in
+        client.product(error)
+      }
+      let version = try bitboxCallString { error in
+        client.version(error)
+      }
+
       let session = self.sessions.insert(
         transport: transport,
         client: client,
-        product: productInfo.product,
-        version: productInfo.version
+        product: product,
+        version: version
       )
       return [
         "id": session.id,

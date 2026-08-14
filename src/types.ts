@@ -105,12 +105,19 @@ export type BitBoxClient = {
 /** Transport used by an active native BitBox session. */
 export type BitBoxReactNativeTransport = 'ble' | 'usb';
 
+/** Canonical product identifier returned by the upstream BitBox API. */
+export type BitBoxProduct =
+  | 'bitbox02-multi'
+  | 'bitbox02-btconly'
+  | 'bitbox02-plus-multi'
+  | 'bitbox02-plus-btconly';
+
 /** Metadata returned by native code after a successful connection. */
 export type BitBoxReactNativeSession = {
   id: string;
   transport: BitBoxReactNativeTransport;
-  product?: string;
-  version?: string;
+  product: BitBoxProduct;
+  version: string;
 };
 
 /** Options shared by the explicit BLE and USB connect helpers. */
@@ -136,7 +143,7 @@ export type BitBoxNovaBleDevice = {
 export type BitBoxUsbDevice = {
   transport: 'usb';
   deviceId: string;
-  product?: string;
+  name?: string;
 };
 
 /**

@@ -45,9 +45,29 @@ func TestMobileProduct(t *testing.T) {
 			want:  common.ProductBitBox02PlusBTCOnly,
 		},
 		{
-			name:  "USB product string",
+			name:  "short Nova multi",
+			input: "bb02p-multi",
+			want:  common.ProductBitBox02PlusMulti,
+		},
+		{
+			name:  "classic multi USB product string",
+			input: common.FirmwareDeviceProductStringBitBox02Multi,
+			want:  common.ProductBitBox02Multi,
+		},
+		{
+			name:  "classic BTC-only USB product string",
+			input: common.FirmwareDeviceProductStringBitBox02BTCOnly,
+			want:  common.ProductBitBox02BTCOnly,
+		},
+		{
+			name:  "Nova multi USB product string",
 			input: common.FirmwareDeviceProductStringBitBox02PlusMulti,
 			want:  common.ProductBitBox02PlusMulti,
+		},
+		{
+			name:  "Nova BTC-only USB product string",
+			input: common.FirmwareDeviceProductStringBitBox02PlusBTCOnly,
+			want:  common.ProductBitBox02PlusBTCOnly,
 		},
 		{
 			name:  "trimmed product string",
