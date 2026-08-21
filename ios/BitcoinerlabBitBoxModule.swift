@@ -48,13 +48,14 @@ private final class BitBoxSession {
 private final class BitBoxSessionStore {
   private let lock = NSLock()
   private var sessions: [String: BitBoxSession] = [:]
+  private var closed = false
 
   func insert(
     transport: BitBoxBleTransport,
     client: BitcoinerlabBitBoxBitboxnativeClient,
     product: String,
     version: String
-  ) -> BitBoxSession {
+  ) throws -> BitBoxSession {
     let session = BitBoxSession(
       id: UUID().uuidString,
       transport: transport,
@@ -63,6 +64,10 @@ private final class BitBoxSessionStore {
       version: version
     )
     lock.lock()
+    guard !closed else {
+      lock.unlock()
+      throw BitBoxNativeError(message: "BitBox module is shutting down")
+    }
     sessions[session.id] = session
     lock.unlock()
     return session
@@ -87,6 +92,18 @@ private final class BitBoxSessionStore {
     }
     session.client.close()
     try? session.transport.close()
+  }
+
+  func closeAll() {
+    lock.lock()
+    closed = true
+    let activeSessions = Array(sessions.values)
+    sessions.removeAll()
+    lock.unlock()
+    for session in activeSessions {
+      session.client.close()
+      try? session.transport.close()
+    }
   }
 }
 
@@ -131,6 +148,10 @@ public class BitcoinerlabBitBoxModule: Module {
   public func definition() -> ModuleDefinition {
     Name(bitboxNativeModuleName)
 
+    OnDestroy {
+      self.sessions.closeAll()
+    }
+
     AsyncFunction("discoverBle") { (_ paramsJSON: String) throws -> [[String: Any]] in
       let params = try bitboxConnectParams(from: paramsJSON)
       return try BitBoxBleDiscovery(timeoutMs: bitboxDefaultConnectTimeoutMs).discover(
@@ -155,6 +176,14 @@ public class BitcoinerlabBitBoxModule: Module {
           defaultValue: bitboxDefaultConnectTimeoutMs
         )
       )
+      var clientToClose: BitcoinerlabBitBoxBitboxnativeClient?
+      var sessionInserted = false
+      defer {
+        if !sessionInserted {
+          clientToClose?.close()
+          try? transport.close()
+        }
+      }
       let productInfo = try transport.connect(deviceId: params["deviceId"] as? String)
       var goError: NSError?
       guard
@@ -166,9 +195,9 @@ public class BitcoinerlabBitBoxModule: Module {
           &goError
         )
       else {
-        try? transport.close()
         throw goError ?? BitBoxNativeError(message: "Failed to initialize BitBox Nova BLE session")
       }
+      clientToClose = client
 
       let product = try bitboxCallString { error in
         client.product(error)
@@ -177,12 +206,13 @@ public class BitcoinerlabBitBoxModule: Module {
         client.version(error)
       }
 
-      let session = self.sessions.insert(
+      let session = try self.sessions.insert(
         transport: transport,
         client: client,
         product: product,
         version: version
       )
+      sessionInserted = true
       return [
         "id": session.id,
         "transport": "ble",

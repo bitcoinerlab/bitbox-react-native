@@ -54,6 +54,8 @@
     "prepublishOnly": "rm -rf dist/ && npm test"
   },
   "files": [
+    "LICENSE",
+    "THIRD_PARTY_LICENSES",
     "dist",
     "BitcoinerlabBitBoxReactNative.podspec",
     "app.plugin.js",

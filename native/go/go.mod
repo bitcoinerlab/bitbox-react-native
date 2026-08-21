@@ -5,6 +5,7 @@ go 1.26
 require (
 	github.com/BitBoxSwiss/bitbox02-api-go v0.0.0-20260701210453-54ce69d38ae3
 	github.com/btcsuite/btcd/btcutil/psbt v1.2.0
+	github.com/flynn/noise v1.1.0
 )
 
 require (
@@ -15,9 +16,8 @@ require (
 	github.com/btcsuite/btclog v1.0.0 // indirect
 	github.com/decred/dcrd/crypto/blake256 v1.0.1 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
-	github.com/flynn/noise v1.1.0 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
-	golang.org/x/crypto v0.43.0 // indirect
+	golang.org/x/crypto v0.53.0 // indirect
 	golang.org/x/mobile v0.0.0-20260611195102-4dd8f1dbf5d2 // indirect
 	golang.org/x/mod v0.37.0 // indirect
 	golang.org/x/sync v0.21.0 // indirect

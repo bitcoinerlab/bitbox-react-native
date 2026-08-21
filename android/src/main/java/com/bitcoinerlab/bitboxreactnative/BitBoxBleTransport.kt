@@ -98,6 +98,7 @@ class BitBoxBleTransport(
 ) : MobileTransport {
   private val readLock = Object()
   private val writeLock = Object()
+  private val connectionLock = Object()
   private val readyLatch = CountDownLatch(1)
   private val normalizedDeviceId = deviceId?.uppercase()
 
@@ -109,6 +110,7 @@ class BitBoxBleTransport(
   @Volatile private var connectionError: Throwable? = null
   @Volatile private var productInfo: BitBoxBleConnectionInfo? = null
   @Volatile private var maxWriteLength = 20
+  private var connecting = false
 
   private var readBuffer = ByteArray(0)
   private var pendingWriteLatch: CountDownLatch? = null
@@ -144,13 +146,43 @@ class BitBoxBleTransport(
       if (normalizedDeviceId != null && device.address.uppercase() != normalizedDeviceId) {
         return
       }
+      synchronized(connectionLock) {
+        if (closed || connecting || gatt != null) return
+        connecting = true
+      }
       try {
         scanner?.stopScan(this)
       } catch (_: Throwable) {}
-      gatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-        device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
-      } else {
-        device.connectGatt(context, false, gattCallback)
+      val newGatt = try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+          device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+        } else {
+          device.connectGatt(context, false, gattCallback)
+        }
+      } catch (error: Throwable) {
+        synchronized(connectionLock) {
+          connecting = false
+        }
+        fail(error)
+        return
+      }
+      val shouldClose = synchronized(connectionLock) {
+        connecting = false
+        when {
+          closed -> true
+          gatt == null -> {
+            gatt = newGatt
+            false
+          }
+          gatt === newGatt -> false
+          else -> true
+        }
+      }
+      if (shouldClose) {
+        try {
+          newGatt.disconnect()
+          newGatt.close()
+        } catch (_: Throwable) {}
       }
     }
 
@@ -162,6 +194,7 @@ class BitBoxBleTransport(
   private val gattCallback = object : BluetoothGattCallback() {
     @SuppressLint("MissingPermission")
     override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+      if (!isCurrentGatt(gatt)) return
       if (status != BluetoothGatt.GATT_SUCCESS) {
         fail("BitBox Nova BLE connection failed with GATT status $status")
         return
@@ -180,6 +213,7 @@ class BitBoxBleTransport(
 
     @SuppressLint("MissingPermission")
     override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
+      if (!isCurrentGatt(gatt)) return
       if (status == BluetoothGatt.GATT_SUCCESS) {
         val payloadLength = max(20, mtu - 3)
         maxWriteLength = if (payloadLength >= 64) {
@@ -193,6 +227,7 @@ class BitBoxBleTransport(
 
     @SuppressLint("MissingPermission")
     override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+      if (!isCurrentGatt(gatt)) return
       if (status != BluetoothGatt.GATT_SUCCESS) {
         fail("BitBox Nova BLE service discovery failed with GATT status $status")
         return
@@ -219,6 +254,7 @@ class BitBoxBleTransport(
       descriptor: BluetoothGattDescriptor,
       status: Int
     ) {
+      if (!isCurrentGatt(gatt)) return
       if (status != BluetoothGatt.GATT_SUCCESS) {
         val name = characteristicName(descriptor.characteristic)
         fail(
@@ -248,6 +284,7 @@ class BitBoxBleTransport(
       gatt: BluetoothGatt,
       characteristic: BluetoothGattCharacteristic
     ) {
+      if (!isCurrentGatt(gatt)) return
       @Suppress("DEPRECATION")
       handleCharacteristicValue(characteristic, characteristic.value ?: ByteArray(0))
     }
@@ -257,6 +294,7 @@ class BitBoxBleTransport(
       characteristic: BluetoothGattCharacteristic,
       value: ByteArray
     ) {
+      if (!isCurrentGatt(gatt)) return
       handleCharacteristicValue(characteristic, value)
     }
 
@@ -265,6 +303,7 @@ class BitBoxBleTransport(
       characteristic: BluetoothGattCharacteristic,
       status: Int
     ) {
+      if (!isCurrentGatt(gatt)) return
       if (status != BluetoothGatt.GATT_SUCCESS) return
       @Suppress("DEPRECATION")
       handleCharacteristicValue(characteristic, characteristic.value ?: ByteArray(0))
@@ -276,6 +315,7 @@ class BitBoxBleTransport(
       value: ByteArray,
       status: Int
     ) {
+      if (!isCurrentGatt(gatt)) return
       if (status == BluetoothGatt.GATT_SUCCESS) {
         handleCharacteristicValue(characteristic, value)
       }
@@ -286,6 +326,7 @@ class BitBoxBleTransport(
       characteristic: BluetoothGattCharacteristic,
       status: Int
     ) {
+      if (!isCurrentGatt(gatt)) return
       synchronized(writeLock) {
         if (status != BluetoothGatt.GATT_SUCCESS) {
           pendingWriteError = BitBoxNativeException("BitBox Nova BLE write failed with GATT status $status")
@@ -396,6 +437,7 @@ class BitBoxBleTransport(
           readBuffer = readBuffer.copyOfRange(count, readBuffer.size)
           return@synchronized
         }
+        currentConnectionError()?.let { throw it }
         val remainingMs = deadline - System.currentTimeMillis()
         if (remainingMs <= 0) {
           throw BitBoxNativeException("Timed out reading from BitBox Nova BLE peripheral")
@@ -418,6 +460,7 @@ class BitBoxBleTransport(
     val chunk = data.copyOfRange(0, count)
     val latch = CountDownLatch(1)
     synchronized(writeLock) {
+      currentConnectionError()?.let { throw it }
       if (pendingWriteLatch != null) {
         throw BitBoxNativeException("BitBox Nova BLE write already in progress")
       }
@@ -444,8 +487,12 @@ class BitBoxBleTransport(
     if (!latch.await(timeoutMs.toLong(), TimeUnit.MILLISECONDS)) {
       synchronized(writeLock) {
         pendingWriteLatch = null
+        pendingWriteError = null
       }
-      throw BitBoxNativeException("Timed out writing to BitBox Nova BLE peripheral")
+      val error = BitBoxNativeException("Timed out writing to BitBox Nova BLE peripheral")
+      fail(error)
+      close()
+      throw error
     }
     synchronized(writeLock) {
       val error = pendingWriteError
@@ -458,30 +505,45 @@ class BitBoxBleTransport(
 
   @SuppressLint("MissingPermission")
   override fun close() {
-    closed = true
+    val resources = synchronized(connectionLock) {
+      if (closed) return
+      closed = true
+      val closedError = BitBoxNativeException("BitBox Nova BLE transport is closed")
+      if (connectionError == null) connectionError = closedError
+      Pair(scanner, gatt).also {
+        scanner = null
+        gatt = null
+        writerCharacteristic = null
+        readerReady = false
+      }
+    }
+    val (localScanner, localGatt) = resources
     try {
-      scanner?.stopScan(scanCallback)
+      localScanner?.stopScan(scanCallback)
     } catch (_: Throwable) {}
-    scanner = null
     try {
-      gatt?.disconnect()
-      gatt?.close()
+      localGatt?.disconnect()
+      localGatt?.close()
     } catch (_: Throwable) {}
-    gatt = null
-    writerCharacteristic = null
     synchronized(readLock) {
       readLock.notifyAll()
     }
     synchronized(writeLock) {
+      pendingWriteError = connectionError
       pendingWriteLatch?.countDown()
     }
     readyLatch.countDown()
   }
 
   private fun checkReady() {
-    if (writerCharacteristic != null && readerReady && productInfo != null) {
+    if (!closed && writerCharacteristic != null && readerReady && productInfo != null) {
       readyLatch.countDown()
     }
+  }
+
+  private fun isCurrentGatt(callbackGatt: BluetoothGatt): Boolean = synchronized(connectionLock) {
+    if (!closed && connecting && gatt == null) gatt = callbackGatt
+    !closed && callbackGatt === gatt
   }
 
   private fun currentConnectionError(): Throwable? = connectionError
@@ -498,6 +560,7 @@ class BitBoxBleTransport(
       readLock.notifyAll()
     }
     synchronized(writeLock) {
+      pendingWriteError = connectionError
       pendingWriteLatch?.countDown()
     }
     readyLatch.countDown()

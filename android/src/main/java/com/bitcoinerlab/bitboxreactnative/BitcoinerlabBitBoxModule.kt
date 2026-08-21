@@ -13,7 +13,6 @@ import expo.modules.kotlin.exception.CodedException
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.io.File
@@ -39,7 +38,9 @@ private data class BitBoxSession(
 )
 
 private class BitBoxSessionStore {
-  private val sessions = ConcurrentHashMap<String, BitBoxSession>()
+  private val lock = Object()
+  private val sessions = mutableMapOf<String, BitBoxSession>()
+  private var closed = false
 
   fun insert(
     transportName: String,
@@ -56,18 +57,38 @@ private class BitBoxSessionStore {
       product = product,
       version = version
     )
-    sessions[session.id] = session
+    synchronized(lock) {
+      if (closed) throw BitBoxNativeException("BitBox module is shutting down")
+      sessions[session.id] = session
+    }
     return session
   }
 
-  fun session(sessionId: String): BitBoxSession = sessions[sessionId]
-    ?: throw BitBoxNativeException("Unknown BitBox session: $sessionId")
+  fun session(sessionId: String): BitBoxSession = synchronized(lock) {
+    sessions[sessionId] ?: throw BitBoxNativeException("Unknown BitBox session: $sessionId")
+  }
 
   fun remove(sessionId: String) {
-    val session = sessions.remove(sessionId)
-      ?: throw BitBoxNativeException("Unknown BitBox session: $sessionId")
-    session.client.close()
-    session.transport.close()
+    val session = synchronized(lock) {
+      sessions.remove(sessionId)
+        ?: throw BitBoxNativeException("Unknown BitBox session: $sessionId")
+    }
+    close(session)
+  }
+
+  fun closeAll() {
+    val activeSessions = synchronized(lock) {
+      closed = true
+      val active = sessions.values.toList()
+      sessions.clear()
+      active
+    }
+    activeSessions.forEach(::close)
+  }
+
+  private fun close(session: BitBoxSession) {
+    try { session.client.close() } catch (_: Throwable) {}
+    try { session.transport.close() } catch (_: Throwable) {}
   }
 }
 
@@ -168,6 +189,10 @@ class BitcoinerlabBitBoxModule : Module() {
   override fun definition() = ModuleDefinition {
     Name(BITBOX_NATIVE_MODULE_NAME)
 
+    OnDestroy {
+      sessions.closeAll()
+    }
+
     AsyncFunction("discoverBle") { paramsJSON: String ->
       val params = bitboxConnectParams(paramsJSON)
       ensureBlePermissions(this@BitcoinerlabBitBoxModule, BITBOX_DEFAULT_CONNECT_TIMEOUT_MS)
@@ -207,36 +232,34 @@ class BitcoinerlabBitBoxModule : Module() {
         timeoutMs = timeoutMs,
         deviceId = params["deviceId"] as? String
       )
-      val connectionInfo = try {
-        transport.connect()
-      } catch (error: Throwable) {
-        try { transport.close() } catch (_: Throwable) {}
-        throw error
-      }
-      val client = try {
-        Bitboxnative.newClientWithMobileTransport(
+      var client: Client? = null
+      try {
+        val connectionInfo = transport.connect()
+        val initializedClient = Bitboxnative.newClientWithMobileTransport(
           transport,
           connectionInfo.product,
           connectionInfo.version,
           true
         )
+        client = initializedClient
+        val session = sessions.insert(
+          transportName = "ble",
+          transport = transport,
+          client = initializedClient,
+          product = initializedClient.product(),
+          version = initializedClient.version()
+        )
+        mapOf(
+          "id" to session.id,
+          "transport" to session.transportName,
+          "product" to session.product,
+          "version" to session.version
+        )
       } catch (error: Throwable) {
+        try { client?.close() } catch (_: Throwable) {}
         try { transport.close() } catch (_: Throwable) {}
         throw error
       }
-      val session = sessions.insert(
-        transportName = "ble",
-        transport = transport,
-        client = client,
-        product = client.product(),
-        version = client.version()
-      )
-      mapOf(
-        "id" to session.id,
-        "transport" to session.transportName,
-        "product" to session.product,
-        "version" to session.version
-      )
     }
 
     AsyncFunction("connectUsb") { paramsJSON: String ->
@@ -250,14 +273,10 @@ class BitcoinerlabBitBoxModule : Module() {
         timeoutMs = timeoutMs,
         deviceId = params["deviceId"] as? String
       )
+      var client: Client? = null
       try {
         transport.connect()
-      } catch (error: Throwable) {
-        try { transport.close() } catch (_: Throwable) {}
-        throw error
-      }
-      val client = try {
-        Bitboxnative.newClientWithMobileTransportAndPairingConfig(
+        val initializedClient = Bitboxnative.newClientWithMobileTransportAndPairingConfig(
           transport,
           "",
           "",
@@ -265,24 +284,25 @@ class BitcoinerlabBitBoxModule : Module() {
           BitBoxPairingConfirmation(activity, timeoutMs),
           File(context.filesDir, "bitbox-usb-noise-config.json").absolutePath
         )
+        client = initializedClient
+        val session = sessions.insert(
+          transportName = "usb",
+          transport = transport,
+          client = initializedClient,
+          product = initializedClient.product(),
+          version = initializedClient.version()
+        )
+        mapOf(
+          "id" to session.id,
+          "transport" to session.transportName,
+          "product" to session.product,
+          "version" to session.version
+        )
       } catch (error: Throwable) {
+        try { client?.close() } catch (_: Throwable) {}
         try { transport.close() } catch (_: Throwable) {}
         throw error
       }
-      val version = client.version()
-      val session = sessions.insert(
-        transportName = "usb",
-        transport = transport,
-        client = client,
-        product = client.product(),
-        version = version
-      )
-      mapOf(
-        "id" to session.id,
-        "transport" to session.transportName,
-        "product" to session.product,
-        "version" to session.version
-      )
     }
 
     AsyncFunction("disconnect") { sessionId: String ->

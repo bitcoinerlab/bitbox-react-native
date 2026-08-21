@@ -31,10 +31,30 @@ class BitBoxUsbTransport(
   private val timeoutMs: Int,
   private val deviceId: String?
 ) : MobileTransport {
+  private val stateLock = Object()
   private var connection: UsbDeviceConnection? = null
   private var usbInterface: UsbInterface? = null
   private var endpointIn: UsbEndpoint? = null
   private var endpointOut: UsbEndpoint? = null
+  private var connectedDeviceName: String? = null
+  private var connectionError: Throwable? = null
+  private var detachReceiverRegistered = false
+
+  private val detachReceiver = object : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+      if (intent.action != UsbManager.ACTION_USB_DEVICE_DETACHED) return
+      val detachedDevice = usbDevice(intent) ?: return
+      val matches = synchronized(stateLock) {
+        detachedDevice.deviceName == connectedDeviceName
+      }
+      if (matches) {
+        synchronized(stateLock) {
+          connectionError = BitBoxNativeException("BitBox USB device was detached")
+        }
+        close()
+      }
+    }
+  }
 
   fun connect() {
     val usbManager = context.getSystemService(Context.USB_SERVICE) as? UsbManager
@@ -51,10 +71,19 @@ class BitBoxUsbTransport(
       openedConnection.close()
       throw BitBoxNativeException("Failed to claim BitBox USB interface")
     }
-    connection = openedConnection
-    usbInterface = endpoints.usbInterface
-    endpointIn = endpoints.endpointIn
-    endpointOut = endpoints.endpointOut
+    synchronized(stateLock) {
+      connection = openedConnection
+      usbInterface = endpoints.usbInterface
+      endpointIn = endpoints.endpointIn
+      endpointOut = endpoints.endpointOut
+      connectedDeviceName = device.deviceName
+    }
+    try {
+      registerDetachReceiver()
+    } catch (error: Throwable) {
+      close()
+      throw error
+    }
   }
 
   private fun ensureUsbPermission(usbManager: UsbManager, device: UsbDevice) {
@@ -65,12 +94,7 @@ class BitBoxUsbTransport(
     val receiver = object : BroadcastReceiver() {
       override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != action) return
-        val receivedDevice = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-          intent.getParcelableExtra(UsbManager.EXTRA_DEVICE, UsbDevice::class.java)
-        } else {
-          @Suppress("DEPRECATION")
-          intent.getParcelableExtra(UsbManager.EXTRA_DEVICE) as? UsbDevice
-        }
+        val receivedDevice = usbDevice(intent)
         if (receivedDevice?.deviceName == device.deviceName) {
           granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
           latch.countDown()
@@ -128,10 +152,13 @@ class BitBoxUsbTransport(
   override fun read(n: Long): ByteArray {
     if (n <= 0) return ByteArray(0)
     if (n > Int.MAX_VALUE) throw BitBoxNativeException("BitBox USB read length is too large")
-    val localConnection = connection
-      ?: throw BitBoxNativeException("BitBox USB device is not connected")
-    val localEndpointIn = endpointIn
-      ?: throw BitBoxNativeException("BitBox USB input endpoint is not available")
+    val (localConnection, localEndpointIn) = synchronized(stateLock) {
+      connectionError?.let { throw it }
+      Pair(
+        connection ?: throw BitBoxNativeException("BitBox USB device is not connected"),
+        endpointIn ?: throw BitBoxNativeException("BitBox USB input endpoint is not available")
+      )
+    }
     val result = ByteArray(n.toInt())
     val transferred = localConnection.bulkTransfer(
       localEndpointIn,
@@ -140,6 +167,9 @@ class BitBoxUsbTransport(
       timeoutMs
     )
     if (transferred < 0) {
+      synchronized(stateLock) {
+        connectionError?.let { throw it }
+      }
       throw BitBoxNativeException("BitBox USB read failed with error code $transferred")
     }
     return if (transferred == result.size) result else result.copyOf(transferred)
@@ -147,10 +177,13 @@ class BitBoxUsbTransport(
 
   override fun write(data: ByteArray): Long {
     if (data.isEmpty()) return 0
-    val localConnection = connection
-      ?: throw BitBoxNativeException("BitBox USB device is not connected")
-    val localEndpointOut = endpointOut
-      ?: throw BitBoxNativeException("BitBox USB output endpoint is not available")
+    val (localConnection, localEndpointOut) = synchronized(stateLock) {
+      connectionError?.let { throw it }
+      Pair(
+        connection ?: throw BitBoxNativeException("BitBox USB device is not connected"),
+        endpointOut ?: throw BitBoxNativeException("BitBox USB output endpoint is not available")
+      )
+    }
     val transferred = localConnection.bulkTransfer(
       localEndpointOut,
       data,
@@ -158,14 +191,34 @@ class BitBoxUsbTransport(
       timeoutMs
     )
     if (transferred < 0) {
+      synchronized(stateLock) {
+        connectionError?.let { throw it }
+      }
       throw BitBoxNativeException("BitBox USB write failed with error code $transferred")
     }
     return transferred.toLong()
   }
 
   override fun close() {
-    val localConnection = connection
-    val localInterface = usbInterface
+    val state = synchronized(stateLock) {
+      if (connectionError == null) {
+        connectionError = BitBoxNativeException("BitBox USB transport is closed")
+      }
+      val current = Triple(connection, usbInterface, detachReceiverRegistered)
+      connection = null
+      usbInterface = null
+      endpointIn = null
+      endpointOut = null
+      connectedDeviceName = null
+      detachReceiverRegistered = false
+      current
+    }
+    val (localConnection, localInterface, receiverWasRegistered) = state
+    if (receiverWasRegistered) {
+      try {
+        context.unregisterReceiver(detachReceiver)
+      } catch (_: Throwable) {}
+    }
     if (localConnection != null && localInterface != null) {
       try {
         localConnection.releaseInterface(localInterface)
@@ -174,10 +227,35 @@ class BitBoxUsbTransport(
     try {
       localConnection?.close()
     } catch (_: Throwable) {}
-    connection = null
-    usbInterface = null
-    endpointIn = null
-    endpointOut = null
+  }
+
+  private fun registerDetachReceiver() {
+    synchronized(stateLock) {
+      detachReceiverRegistered = true
+    }
+    try {
+      val filter = IntentFilter(UsbManager.ACTION_USB_DEVICE_DETACHED)
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        context.registerReceiver(detachReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+      } else {
+        @Suppress("DEPRECATION")
+        context.registerReceiver(detachReceiver, filter)
+      }
+    } catch (error: Throwable) {
+      synchronized(stateLock) {
+        detachReceiverRegistered = false
+      }
+      throw error
+    }
+  }
+
+  private fun usbDevice(intent: Intent): UsbDevice? {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      intent.getParcelableExtra(UsbManager.EXTRA_DEVICE, UsbDevice::class.java)
+    } else {
+      @Suppress("DEPRECATION")
+      intent.getParcelableExtra(UsbManager.EXTRA_DEVICE) as? UsbDevice
+    }
   }
 }
 
